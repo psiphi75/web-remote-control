@@ -27,7 +27,9 @@ var dgram = require('dgram');
 
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
+
 var common = require('./common');
+var PingManager = require('./PingManager');
 
 var NET_TIMEOUT = 5 * 1000;
 
@@ -40,6 +42,7 @@ function Device(settings) {
     this.log = settings.log;
 
     this.uid = undefined;
+    this.pingManager = new PingManager();
 
     // This keeps a track of ther controller sequenceNumber.  If a command with a
     // smaller number is received, we drop it.
@@ -80,18 +83,10 @@ function Device(settings) {
     EventEmitter.call(this);
     this.on('ping', function fn(pingSendTime, pingSeqNum) {
 
-        if (self.pingLastSeqNum !== pingSeqNum) {
-            return;
-        }
-
-        var time = (new Date()).getTime() - pingSendTime;
-
-        if (typeof this.pingCallback === 'function') {
-            this.pingCallback(time);
-        }
+        var pingTime = (new Date()).getTime() - pingSendTime;
+        this.pingManager.respond(pingSeqNum, pingTime);
 
     });
-
 
 }
 util.inherits(Device, EventEmitter);
@@ -128,6 +123,7 @@ Device.prototype.register = function () {
 
         self.log(self.deviceType + ': unable to register with proxy, trying again.');
         self.register();
+
     }, NET_TIMEOUT);
 
     function cleanUp() {
@@ -150,13 +146,7 @@ Device.prototype.ping = function(callback) {
         return;
     }
 
-    if (this.pingLastSeqNum) {
-        this.pingCallback(-1);
-        this.log('last ping did not get a response.');
-    }
-
-    this.pingLastSeqNum = this.mySeqNum;
-    this.pingCallback = callback;
+    this.pingManager.add(this.mySeqNum, callback);
 
     var timeStr = (new Date().getTime()).toString();
     this.send('ping', timeStr);

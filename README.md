@@ -71,26 +71,27 @@ The default values are shown below.  This can be found in `index.js`.
 ```javascript
 var defaults = {
 
-    // This is the URL were the proxy is located.  Only Toys and Controllers can
-    // configure this.
-    proxyUrl: 'localhost',
+  // This is the URL were the proxy is located.  Only Toys and Controllers
+  // can configure this.
+  proxyUrl: 'localhost',
 
-    // This is the port of the proxy.  All three components (proxy, controller,
-    // and toy) need to be configured on the same port.
-    proxyPort: 33330,
+  // This is the port of the proxy.  All three components (proxy, controller,
+  // and toy) need to be configured on the same port.
+  proxyPort: 33330,
 
-    // This is the channel to use.  The proxy will ensure that only devices on
-    // the same channel can communicate together.  The controller and toy need
-    // to be on the same channel.  You can make the channel a unique string.
-    channel: 1,
+  // This is the channel to use.  The proxy will ensure that only devices on
+  // the same channel can communicate together.  The controller and toy need
+  // to be on the same channel.  You can make the channel a unique string.
+  channel: 1,
 
-    // How often the device pings the proxy.  This helps ensure the connection
-    // is kept alive.  You can disable this by setting it to 0 (zero).
-    keepalive: 30,
+  // How often the device pings the proxy.  This helps ensure the connection
+  // is kept alive.  You can disable this by setting it to 0 (zero).
+  keepalive: 30,
 
-    // This determines the logging to use.  By default it logs to the standard
-    // console.  Set this to `function () {}` if you wish to not log anything.
-    log: console.log
+  // This determines the logging to use.  By default it logs to the standard
+  // console.  Set this to `function () {}` if you wish to not log anything.
+  log: console.log
+
 };
 ```
 
@@ -105,13 +106,15 @@ var settings = {
 var proxy = wrc.createProxy(settings);
 ```
 
-## TODO
+## Known Issues
 
-- Drop late arrival (out of order) packets.
-- Make the compression work.
-- Instructions for web component.
-- DONE: If we are not registered, try again in 30 seconds.
-- Each ping creates a new listener.
+Below are known issues, feel free to fix them.
+
+- **Work In Progress**: The web component needs creating and documented.
+- Out of order packets are not handled, we should only use the most recent command packet.
+- Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.  However, when I send packets with smaz they don't decompress properly. Although the same data compresses and decompresses fine when it is not transmitted.
+- **Fixed**: If we are not registered, try again in 30 seconds.
+- **Fixed**: Each ping creates a new listener.
 
 ## License
 
