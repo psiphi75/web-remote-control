@@ -111,6 +111,7 @@ var proxy = wrc.createProxy(settings);
 - Make the compression work.
 - Instructions for web component.
 - DONE: If we are not registered, try again in 30 seconds.
+- Each ping creates a new listener.
 
 ## License
 

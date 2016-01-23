@@ -76,7 +76,23 @@ function Device(settings) {
     // Register the device, this announces us.
     this.register();
 
+    // Listens for the ping response
     EventEmitter.call(this);
+    this.on('ping', function fn(pingSendTime, pingSeqNum) {
+
+        if (self.pingLastSeqNum !== pingSeqNum) {
+            return;
+        }
+
+        var time = (new Date()).getTime() - pingSendTime;
+
+        if (typeof this.pingCallback === 'function') {
+            this.pingCallback(time);
+        }
+
+    });
+
+
 }
 util.inherits(Device, EventEmitter);
 
@@ -134,27 +150,16 @@ Device.prototype.ping = function(callback) {
         return;
     }
 
+    if (this.pingLastSeqNum) {
+        this.pingCallback(-1);
+        this.log('last ping did not get a response.');
+    }
+
+    this.pingLastSeqNum = this.mySeqNum;
+    this.pingCallback = callback;
+
     var timeStr = (new Date().getTime()).toString();
-    var seqNum = this.mySeqNum;
-
     this.send('ping', timeStr);
-
-    // Listens for the ping response
-    var self = this;
-    this.on('ping', function fn(pingSendTime, pingSeqNum) {
-
-        if (seqNum !== pingSeqNum) {
-            return;
-        }
-
-        var time = (new Date()).getTime() - pingSendTime;
-
-        if (typeof callback === 'function') {
-            callback(time);
-        }
-
-        self.removeListener('ping', fn);
-    });
 
 };
 

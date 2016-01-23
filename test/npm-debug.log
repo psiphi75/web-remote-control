@@ -1,0 +1,19 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/bin/nodejs', '/usr/bin/npm', 'test' ]
+2 info using npm@1.4.21
+3 info using node@v4.2.4
+4 error Error: ENOENT: no such file or directory, open '/home/simon/Projects/SailRacerGitHub/web-remote-control/test/package.json'
+4 error     at Error (native)
+5 error If you need help, you may report this *entire* log,
+5 error including the npm and node versions, at:
+5 error     <http://github.com/npm/npm/issues>
+6 error System Linux 4.3.0-1-amd64
+7 error command "/usr/bin/nodejs" "/usr/bin/npm" "test"
+8 error cwd /home/simon/Projects/SailRacerGitHub/web-remote-control/test
+9 error node -v v4.2.4
+10 error npm -v 1.4.21
+11 error path /home/simon/Projects/SailRacerGitHub/web-remote-control/test/package.json
+12 error syscall open
+13 error code ENOENT
+14 error errno -2
+15 verbose exit [ -2, true ]
