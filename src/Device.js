@@ -29,6 +29,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var common = require('./common');
 
+var NET_TIMEOUT = 5 * 1000;
 
 function Device(settings) {
     this.proxyUrl = settings.proxyUrl;
@@ -36,6 +37,7 @@ function Device(settings) {
     this.channel = settings.channel;
     this.keepalive = settings.keepalive;
     this.deviceType = settings.deviceType;
+    this.log = settings.log;
 
     this.uid = undefined;
 
@@ -80,19 +82,42 @@ util.inherits(Device, EventEmitter);
 
 
 /**
- * Send a ping to the proxy only.  Expect an immediate response from proxy.
+ * Register with the proxy only.  Expect an immediate response from proxy. We
+ * send the channel we are on, then expect a UID in return.
+ *
+ * Note: if 'uid' is set, then we are registered.
  */
 Device.prototype.register = function () {
 
-    var self = this;
-    this.on('register', function (uid) {
-        if (typeof uid !== 'string') {
-            throw new Error('unable to initailise');
-        }
-        self.uid = uid;
-    });
-
+    this.on('register', receiveRegisterResponse);
     this.send('register', this.deviceType);
+
+    var self = this;
+    function receiveRegisterResponse(uid) {
+
+        if (!self.uid) {
+            this.log('Registered');
+
+            if (typeof uid !== 'string') {
+                throw new Error('unable to initailise');
+            }
+            self.uid = uid;
+        }
+
+        cleanUp();
+    }
+
+    // Check the registery again in RECHECK_REGISTER seconds if we do not get a response
+    var recheckRegisteryTimeout = setTimeout(function checkRegistery() {
+
+        self.log(self.deviceType + ': unable to register with proxy, trying again.');
+        self.register();
+    }, NET_TIMEOUT);
+
+    function cleanUp() {
+        self.removeListener('register', receiveRegisterResponse);
+        clearTimeout(recheckRegisteryTimeout);
+    }
 
 };
 
@@ -102,6 +127,12 @@ Device.prototype.register = function () {
  * @param  {function} callback  This function gets called on completion of the ping.
  */
 Device.prototype.ping = function(callback) {
+
+    // Can only ping if we are registered
+    if (!this.uid) {
+        callback(-1);
+        return;
+    }
 
     var timeStr = (new Date().getTime()).toString();
     var seqNum = this.mySeqNum;

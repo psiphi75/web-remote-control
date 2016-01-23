@@ -110,6 +110,7 @@ var proxy = wrc.createProxy(settings);
 - Drop late arrival (out of order) packets.
 - Make the compression work.
 - Instructions for web component.
+- DONE: If we are not registered, try again in 30 seconds.
 
 ## License
 
