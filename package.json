@@ -1,0 +1,37 @@
+{
+  "name": "web-remote-control",
+  "version": "1.0.0",
+  "description": "Fast, real-time, remote control of devices (drones, boats, etc) from the web.",
+  "main": "index.js",
+  "author": {
+      "name" : "Simon Werner",
+      "url" : "https://github.com/psiphi75"
+  },
+  "repository" : {
+      "type" : "git",
+      "url" : "https://github.com/psiphi75/web-remote-control"
+  },
+  "bugs": {
+      "url" : "https://github.com/psiphi75/web-remote-control/issues"
+  },
+  "scripts": {
+    "test": "node ./test/testWRC.js  &&  node ./test/testDevMan.js"
+  },
+  "keywords": [
+    "udp",
+    "remote",
+    "control",
+    "web",
+    "control",
+    "rc",
+    "drone",
+    "uav"
+  ],
+  "license": "APSL-2.0",
+  "devDependencies": {
+    "tape": "^4.4.0"
+  },
+  "dependencies": {
+    "shortid": "^2.2.4"
+  }
+}
