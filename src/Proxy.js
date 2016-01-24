@@ -39,9 +39,10 @@ function Prox(settings) {
     var self = this;
     this.log = settings.log;
     this.devices = new DevMan();
+
+    settings.isServer = true;
     this.server = new ConnectionManager(settings);
 
-    // As soon as the server is ready to receive messages, handle it with this handler
     this.server.on('listening', function (localAddress, localPort) {
         if (self.log) {
             self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
@@ -49,7 +50,7 @@ function Prox(settings) {
     });
 
     this.server.on('error', function(err) {
-        console.error('Prox: There was an error with the proxy: ', err);
+        console.error('Proxy: There was an error: ', err);
     });
 
     this.server.on('register', this.registerDevice.bind(this));

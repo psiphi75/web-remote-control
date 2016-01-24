@@ -1,6 +1,6 @@
 {
   "name": "web-remote-control",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Fast, real-time, remote control of devices (drones, boats, etc) from the web.",
   "main": "index.js",
   "author": {

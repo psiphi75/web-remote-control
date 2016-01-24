@@ -1,5 +1,5 @@
 # Web Remote Control
-Remote control an IoT (Internet of Things) device from the web.  This also has a proxy which makes this solution ideal for controlling devices on the cellular network (i.e where you cannot directly access by an IP).  It uses the UDP protocol instead of TCP to make the communication more efficient.
+Remote control an IoT (Internet of Things) device from the web.  This also has a proxy which makes this solution ideal for controlling devices on the cellular network (i.e where you cannot directly access by an IP).  It uses the UDP protocol instead of TCP by default to make the communication more efficient.  Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
 
 Three components are provided:
 - Proxy - needs to be run on a server accessible to the Controller and Toy.
@@ -93,7 +93,13 @@ var defaults = {
   // This determines the logging to use.  By default it logs to the
   // standard console.  Set this to `function () {}` if you wish to not
   // log anything.
-  log: console.log
+  log: console.log,
+
+  // Use the TCP Protocol - only the proxy can use both TCP and UDP.
+  tcp4: false,
+
+  // Use the UDP protocol - only the proxy can use both TCP and UDP.
+  udp4: true
 
 };
 ```

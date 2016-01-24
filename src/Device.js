@@ -23,13 +23,11 @@
 
 'use strict';
 
-var dgram = require('dgram');
-
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
-var common = require('./common');
 var PingManager = require('./PingManager');
+var ConnectionManager = require('./ConnectionManager');
 
 var NET_TIMEOUT = 5 * 1000;
 
@@ -41,8 +39,16 @@ function Device(settings) {
     this.deviceType = settings.deviceType;
     this.log = settings.log;
 
+    if (settings.udp4 === true && settings.tcp4 === true) {
+        throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
+    }
+    this.protocol = settings.udp ? 'udp4' : 'tcp4';
+
     this.uid = undefined;
     this.pingManager = new PingManager();
+
+    settings.isServer = false;
+    this.connection = new ConnectionManager(settings);
 
     // This keeps a track of ther controller sequenceNumber.  If a command with a
     // smaller number is received, we drop it.
@@ -53,41 +59,29 @@ function Device(settings) {
         this.timeoutHandle = setInterval(this.ping.bind(this), this.keepalive * 1000);
     }
 
-    this.proxyConnection = dgram.createSocket('udp4');
-
-    this.proxyConnection.on('error', function(err) {
-        throw new Error('Error sending data to ' + self.proxyIp + ': ', err);
+    var self = this;
+    this.connection.on('error', function(err) {
+        self.emit('error', 'Device: There was an error: ' + err);
+    });
+    this.connection.on('register', reEmit);
+    this.connection.on('status', reEmit);
+    this.connection.on('command', reEmit);
+    this.connection.on('ping', function fn(msgObj) {
+        var pingTime = (new Date()).getTime() - parseInt(msgObj.data);
+        self.pingManager.respond(msgObj.seq, pingTime);
     });
 
-    // Once sent, listen to the results
-    var self = this;
-    this.proxyConnection.on('message', function(msgComp, remote) {
+    function reEmit(responseMsgObj, remote) {
         // Override global 'ip' variable, this caches our IP address which is faster than url.
         self.proxyIp = remote.address;
-
-        var resMsgObj = common.decompress(msgComp);
-
-        if (!resMsgObj) {
-            return;
-        }
-
-        // Announce the message has arrived
-        self.emit(resMsgObj.type, resMsgObj.data, resMsgObj.seq);
-
-    });
+        self.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
+    }
 
     // Register the device, this announces us.
     this.register();
 
-    // Listens for the ping response
+    // Make ourself an emiter
     EventEmitter.call(this);
-    this.on('ping', function fn(pingSendTime, pingSeqNum) {
-
-        var pingTime = (new Date()).getTime() - pingSendTime;
-        this.pingManager.respond(pingSeqNum, pingTime);
-
-    });
-
 }
 util.inherits(Device, EventEmitter);
 
@@ -107,7 +101,7 @@ Device.prototype.register = function () {
     function receiveRegisterResponse(uid) {
 
         if (!self.uid) {
-            this.log('Registered');
+            self.log('Registered');
 
             if (typeof uid !== 'string') {
                 throw new Error('unable to initailise');
@@ -174,7 +168,7 @@ Device.prototype.status = function (msgString) {
 Device.prototype.command = function (msgString) {
 
     if (this.deviceType !== 'controller') {
-        throw new Error('Only controllers can create commands');
+        throw new Error('Only controllers can send commands.');
     }
 
     this.send('command', msgString);
@@ -188,27 +182,21 @@ Device.prototype.command = function (msgString) {
  */
 Device.prototype.send = function(type, data) {
 
-    var msgObject = {
+    var msgObj = {
         type: type,
         seq: this.mySeqNum,
         data: data
     };
 
     if (type === 'register') {
-        msgObject.channel = this.channel;
+        msgObj.channel = this.channel;
     } else {
-        msgObject.uid = this.uid;
+        msgObj.uid = this.uid;
     }
-
-    var msg = common.compress(msgObject).toString();
 
     // Send the message to the proxy.  Use the IP have we have determined it.
     this.proxyIp = this.proxyIp || this.proxyUrl;
-    this.proxyConnection.send(msg, 0, msg.length, this.port, this.proxyIp, function(err) {
-        if (err) {
-            console.error('Device.send(): Error sending udp packet to remote host: ', err);
-        }
-    });
+    this.connection.send(this.protocol, msgObj, this.port, this.proxyIp);
     this.mySeqNum += 1;
 
 };
@@ -221,8 +209,8 @@ Device.prototype.close = function() {
     if (this.timeoutHandle) {
         clearTimeout(this.timeoutHandle);
     }
-    if (this.proxyConnection) {
-        this.proxyConnection.close();
+    if (this.connection) {
+        this.connection.closeAll();
     }
 };
 

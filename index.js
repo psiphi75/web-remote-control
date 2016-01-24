@@ -47,7 +47,13 @@ var defaults = {
 
     // This determines the logging to use.  By default it logs to the standard
     // console.
-    log: console.log
+    log: console.log,
+
+    // Use the TCP Protocol - only the proxy can use both TCP and UDP.
+    tcp4: false,
+
+    // Use the UDP protocol - only the proxy can use both TCP and UDP.
+    udp4: true
 };
 
 // The proxy is the go-between server
@@ -74,6 +80,8 @@ function init(type) {
             keepalive: params.keepalive || defaults.keepalive,
             port: params.port || defaults.port,
             log: params.log || defaults.log,
+            tcp: params.tcp4 || defaults.tcp4,
+            udp: params.udp4 || defaults.udp4,
             deviceType: type
         };
 

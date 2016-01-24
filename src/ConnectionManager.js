@@ -49,12 +49,13 @@ function ConnectionManager (options) {
     }
     this.port = options.port || DEFAULTS.port;
     this.log = options.log || DEFAULTS.log;
+    this.isServer = options.isServer;
 
-    if (!(options.udp === false)) {
+    if (!(options.udp4 === false)) {
         this.setupUPD();
     }
 
-    if (!(options.tcp === false)) {
+    if (!(options.tcp4 === false)) {
         console.error('tcp not yet ready');
     //     this.setupTCP();
     }
@@ -71,19 +72,24 @@ ConnectionManager.prototype.setupUPD = function () {
 
     var self = this;
     this.udp = dgram.createSocket('udp4');
-    this.udp.on('listening', function () {
-        var address = self.udp.address();
-        self.emit('listening', address.address, address.port);
-    });
+
+    if (this.isServer) {
+        this.udp.on('listening', function () {
+            var address = self.udp.address();
+            self.emit('listening', address.address, address.port);
+        });
+        this.udp.bind(this.port);
+    }
+
     this.udp.on('error', handleError);
     this.udp.on('message', function (message, remote) {
         remote.protocol = 'udp4';
         handleMessage.bind(self)(message, remote);
     });
-    this.udp.bind(this.port);
 
 
     function handleError(err) {
+        console.log(err);
         this.emit('error', err);
     }
 
@@ -175,7 +181,7 @@ ConnectionManager.prototype.send = function(protocol, msgObj, port, address) {
         return;
     }
 
-    if (protocol === 'tcp') {
+    if (protocol === 'tcp4') {
         // this.tcp.send(msgComp, 0, msgComp.length, port, address, handleError);
         return;
     }
