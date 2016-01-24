@@ -71,25 +71,28 @@ The default values are shown below.  This can be found in `index.js`.
 ```javascript
 var defaults = {
 
-  // This is the URL were the proxy is located.  Only Toys and Controllers
-  // can configure this.
+  // This is the URL were the proxy is located.  Only Toys and
+  // Controllers can configure this.
   proxyUrl: 'localhost',
 
-  // This is the port of the proxy.  All three components (proxy, controller,
-  // and toy) need to be configured on the same port.
-  proxyPort: 33330,
+  // This is the port of the proxy.  All three components (proxy,
+  // controller and toy) need to be configured on the same port.
+  port: 33330,
 
-  // This is the channel to use.  The proxy will ensure that only devices on
-  // the same channel can communicate together.  The controller and toy need
-  // to be on the same channel.  You can make the channel a unique string.
+  // This is the channel to use.  The proxy will ensure that only devices
+  // on the same channel can communicate together.  The controller and
+  // toy need to be on the same channel.  You can make the channel a
+  // unique string.
   channel: 1,
 
-  // How often the device pings the proxy.  This helps ensure the connection
-  // is kept alive.  You can disable this by setting it to 0 (zero).
+  // How often the device pings the proxy.  This helps ensure the
+  // connection is kept alive.  You can disable this by setting it to
+  // 0 (zero).
   keepalive: 30,
 
-  // This determines the logging to use.  By default it logs to the standard
-  // console.  Set this to `function () {}` if you wish to not log anything.
+  // This determines the logging to use.  By default it logs to the
+  // standard console.  Set this to `function () {}` if you wish to not
+  // log anything.
   log: console.log
 
 };
@@ -100,7 +103,7 @@ Below is an example for creating a custom proxy.
 ```javascript
 var wrc = require('web-remote-control');
 var settings = {
-    proxyPort: 12345,
+    port: 12345,
     log: function () {}  // turn logging off
 };
 var proxy = wrc.createProxy(settings);

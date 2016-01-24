@@ -23,14 +23,11 @@
 
 'use strict';
 
-var dgram = require('dgram');
-
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
-var common = require('./common');
 var DevMan = require('./DeviceManager');
-
+var ConnectionManager = require('./ConnectionManager');
 
 /**
  * This is the proxy server.  It is the "man in the middle".  Devices (toys and
@@ -40,16 +37,14 @@ var DevMan = require('./DeviceManager');
 function Prox(settings) {
 
     var self = this;
-
     this.log = settings.log;
     this.devices = new DevMan();
-    this.server = dgram.createSocket('udp4');
+    this.server = new ConnectionManager(settings);
 
     // As soon as the server is ready to receive messages, handle it with this handler
-    this.server.on('listening', function () {
-        if (this.log) {
-            var address = self.server.address();
-            this.log('Web-Remote-Control Proxy Server listening on ' + address.address + ':' + address.port);
+    this.server.on('listening', function (localAddress, localPort) {
+        if (self.log) {
+            self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
         }
     });
 
@@ -57,11 +52,10 @@ function Prox(settings) {
         console.error('Prox: There was an error with the proxy: ', err);
     });
 
-    this.server.on('message', function(message, remote) {
-        self.handleIncomingMessage(message, remote);
-    });
-
-    this.server.bind(settings.proxyPort);
+    this.server.on('register', this.registerDevice.bind(this));
+    this.server.on('ping', this.respondToPing.bind(this));
+    this.server.on('status', this.forwardStatus.bind(this));
+    this.server.on('command', this.forwardCommand.bind(this));
 
     EventEmitter.call(this);
 
@@ -73,53 +67,7 @@ util.inherits(Prox, EventEmitter);
  * Close all connections.
  */
 Prox.prototype.close = function() {
-    this.server.close();
-};
-
-
-/**
- * This method is run for all incoming messages.
- * @param  {Buffer} message The incomming buffer message.
- * @param  {object} remote  Details of the remote connection.
- */
-Prox.prototype.handleIncomingMessage = function(message, remote) {
-
-    var msgObj;
-
-    try {
-        msgObj = common.decompress(message);
-    } catch (ex) {
-        console.error('There was an error parsing the incoming message: ', ex);
-        return;
-    }
-
-    if (typeof msgObj !== 'object') {
-        console.error('The incoming message is corrupt.');
-        return;
-    }
-
-    if (this.log) {
-        this.log(new Date(), remote.address + ':' + remote.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
-    }
-
-    switch (msgObj.type) {
-        case 'register':
-            this.registerDevice(msgObj, remote);
-            break;
-        case 'ping':
-            this.respondToPing(msgObj, remote);
-            break;
-        case 'status':
-            this.forwardStatus(msgObj, remote);
-            break;
-        case 'command':
-            this.forwardCommand(msgObj, remote);
-            break;
-        default:
-            console.error('An invalid incoming message arrived: ', message.toString());
-            return;
-    }
-
+    this.server.closeAll();
 };
 
 
@@ -132,7 +80,7 @@ Prox.prototype.registerDevice = function(msgObj, remote) {
 
     if (!this.devices.validDeviceType(msgObj.data)) {
         console.error('Invalid device type: ', msgObj.data);
-        this.sendError('error registering device', remote);
+        this.server.sendError(remote.protocol, 'error registering device', remote);
         return;
     }
 
@@ -141,7 +89,7 @@ Prox.prototype.registerDevice = function(msgObj, remote) {
         return;
     }
 
-    var uid = this.devices.add(msgObj.data, msgObj.channel, remote.address, remote.port);
+    var uid = this.devices.add(msgObj.data, msgObj.channel, remote.address, remote.port, msgObj.protocol);
     msgObj.uid = uid;
     msgObj.data = uid;
 
@@ -191,7 +139,7 @@ Prox.prototype.forwardStatus = function(msgObj, remote) {
 
 /**
  * Forward a command from a controller/toy to a toy/controller.  This will
- * forward to all toys/contollers on the given channel.
+ * forward to all toys/controllers on the given channel.
  *
  * @param  {string} forwardToType The type of item we are forwarding to.
  * @param  {object} msgObj The message object we are forwarding.
@@ -203,7 +151,7 @@ Prox.prototype.forward = function(forwardToType, msgObj, remote) {
     var controller = this.devices.update(msgObj.uid, remote.address, remote.port);
 
     if (!controller) {
-        console.error('Prox.forwardCommand(): \'contoller\' not found: ', msgObj.uid);
+        console.error('Prox.forwardCommand(): \'controller\' not found: ', msgObj.uid);
         return;
     }
     var uidList = this.devices.getAll(forwardToType, controller.channel);
@@ -222,26 +170,8 @@ Prox.prototype.forward = function(forwardToType, msgObj, remote) {
  * @param  {object} device The device to send this to.
  */
 Prox.prototype.send = function(msgObj, device) {
-
-    var msgComp = common.compress(msgObj);
-    this.server.send(msgComp, 0, msgComp.length, device.port, device.address, function stdCBErr(err) {
-        if (err) {
-            console.error(err);
-        }
-    });
+    this.server.send(device.protocol, msgObj, device.port, device.address);
 };
 
-/**
- * Sends and error to the remote device.
- * @param  {string} err    The error string
- * @param  {object} remote The remote device / connection.
- */
-Prox.prototype.sendError = function(err, remote) {
-
-    // Note send expects a "device", but we send it "remote", the structure
-    // is the same.
-    this.send(err, remote);
-
-};
 
 module.exports = Prox;

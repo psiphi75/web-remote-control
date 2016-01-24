@@ -36,19 +36,21 @@ function DeviceManager() {
 
 /**
  * Add a new toy/controller to the device manager.
- * @param  {string} type    'toy' or 'contoller'.
+ * @param  {string} type    'toy' or 'controller'.
  * @param  {string} channel The channel to operate on (this is provided by the device).
  * @param  {string} address The IP address.
- * @param  {numner} port    The port number
+ * @param  {number} port    The port number
+ * @param  {string} protocol 'tcp4' or 'udp4'
  * @return {uid}            The UID of the device.
  */
-DeviceManager.prototype.add = function(type, channel, address, port) {
+DeviceManager.prototype.add = function(type, channel, address, port, protocol) {
 
     switch (undefined) { // eslint-disable-line default-case
         case type:
         case channel:
         case address:
         case port:
+        case protocol:
             console.error('DeviceManager.add(): one of the inputs are undefined.'/*, new Error().stack*/);
             return undefined;
     }
@@ -63,7 +65,8 @@ DeviceManager.prototype.add = function(type, channel, address, port) {
         type: type,
         channel: channel,
         address: address,
-        port: port
+        port: port,
+        protocol: protocol
     };
     return uid;
 

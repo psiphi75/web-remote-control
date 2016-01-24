@@ -35,7 +35,7 @@ var NET_TIMEOUT = 5 * 1000;
 
 function Device(settings) {
     this.proxyUrl = settings.proxyUrl;
-    this.proxyPort = settings.proxyPort;
+    this.port = settings.port;
     this.channel = settings.channel;
     this.keepalive = settings.keepalive;
     this.deviceType = settings.deviceType;
@@ -141,7 +141,7 @@ Device.prototype.register = function () {
 Device.prototype.ping = function(callback) {
 
     // Can only ping if we are registered
-    if (!this.uid) {
+    if (!this.uid && typeof callback === 'function') {
         callback(-1);
         return;
     }
@@ -204,7 +204,7 @@ Device.prototype.send = function(type, data) {
 
     // Send the message to the proxy.  Use the IP have we have determined it.
     this.proxyIp = this.proxyIp || this.proxyUrl;
-    this.proxyConnection.send(msg, 0, msg.length, this.proxyPort, this.proxyIp, function(err) {
+    this.proxyConnection.send(msg, 0, msg.length, this.port, this.proxyIp, function(err) {
         if (err) {
             console.error('Device.send(): Error sending udp packet to remote host: ', err);
         }

@@ -41,9 +41,9 @@ PingManager.prototype.add = function(pingId, callback) {
     if (typeof pingId !== 'number') {
         throw new Error('PingManager.add(): pingId must be a number.');
     }
-    if (typeof callback !== 'function') {
-        throw new Error('PingManager.add(): callback must be supplied and be a function.');
-    }
+    // if (typeof callback !== 'function') {
+    //     throw new Error('PingManager.add(): callback must be supplied and be a function.');
+    // }
     if (this.pingList[pingId]) {
         throw new Error('PingManager.add(): pingId has already been supplied.');
     }
@@ -74,8 +74,10 @@ PingManager.prototype.respond = function(pingId, time) {
 
     clearTimeout(ping.timeoutHandle);
 
-    ping.callback(time);
-
+    if (typeof ping.callback === 'function'){
+        ping.callback(time);
+    }
+    
     try {
         delete this.pingList[pingId];
     } catch (ex) {

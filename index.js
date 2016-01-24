@@ -34,7 +34,7 @@ var defaults = {
 
     // This is the port of the proxy.  All three components (proxy, controller,
     // and toy) need to be configured on the same port.
-    proxyPort: 33330,
+    port: 33330,
 
     // This is the channel to use.  The proxy will ensure that only devices on
     // the same channel can communicate together.  The controller and toy need
@@ -53,7 +53,7 @@ var defaults = {
 // The proxy is the go-between server
 exports.createProxy = init('proxy');
 
-// The contoller and contolled device (toy) use the same functionality.
+// The controller and contolled device (toy) use the same functionality.
 exports.createToy = init('toy');
 exports.createController = init('controller');
 
@@ -72,7 +72,7 @@ function init(type) {
             proxyUrl: params.proxyUrl || defaults.proxyUrl,
             channel: params.channel || defaults.channel,
             keepalive: params.keepalive || defaults.keepalive,
-            proxyPort: params.proxyPort || defaults.proxyPort,
+            port: params.port || defaults.port,
             log: params.log || defaults.log,
             deviceType: type
         };
