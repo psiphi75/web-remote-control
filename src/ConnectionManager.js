@@ -47,12 +47,10 @@ function ConnectionManager (options) {
     if (!options) {
         options = DEFAULTS;
     }
-    this.port = options.port || DEFAULTS.port;
     this.log = options.log || DEFAULTS.log;
-    this.isServer = options.isServer;
 
     if (!(options.udp4 === false)) {
-        this.setupUPD();
+        this.setupUDP();
     }
 
     if (!(options.tcp4 === false)) {
@@ -68,25 +66,16 @@ util.inherits(ConnectionManager, EventEmitter);
 /**
  * Set up the UDP listener.
  */
-ConnectionManager.prototype.setupUPD = function () {
+ConnectionManager.prototype.setupUDP = function () {
 
     var self = this;
     this.udp = dgram.createSocket('udp4');
-
-    if (this.isServer) {
-        this.udp.on('listening', function () {
-            var address = self.udp.address();
-            self.emit('listening', address.address, address.port);
-        });
-        this.udp.bind(this.port);
-    }
 
     this.udp.on('error', handleError);
     this.udp.on('message', function (message, remote) {
         remote.protocol = 'udp4';
         handleMessage.bind(self)(message, remote);
     });
-
 
     function handleError(err) {
         console.log(err);
@@ -110,6 +99,24 @@ ConnectionManager.prototype.setupUPD = function () {
         }
     }
 };
+
+
+/**
+ * Start the UDP server on the given port and address (optional)
+ * @param  {number} port    The port number to listen on.
+ * @param  {string} address (optional) The IP address to listen on.
+ */
+ConnectionManager.prototype.listenUDP4 = function(port, address) {
+    var self = this;
+    this.udp.on('listening', function () {
+        self.emit('listening', port, address);
+    });
+    this.udp.bind({
+        port: port,
+        address: address
+    });
+};
+
 
 /**
  * Parse an incoming message and ensure it's valid.  Convert it to an object that

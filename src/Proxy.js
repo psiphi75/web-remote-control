@@ -38,12 +38,12 @@ function Prox(settings) {
 
     var self = this;
     this.log = settings.log;
+
     this.devices = new DevMan();
-
-    settings.isServer = true;
     this.server = new ConnectionManager(settings);
+    this.server.listenUDP4(settings.port);
 
-    this.server.on('listening', function (localAddress, localPort) {
+    this.server.on('listening', function (localPort, localAddress) {
         if (self.log) {
             self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
         }

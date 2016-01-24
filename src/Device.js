@@ -46,8 +46,6 @@ function Device(settings) {
 
     this.uid = undefined;
     this.pingManager = new PingManager();
-
-    settings.isServer = false;
     this.connection = new ConnectionManager(settings);
 
     // This keeps a track of ther controller sequenceNumber.  If a command with a
