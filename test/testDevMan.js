@@ -35,14 +35,14 @@ test('Can create a list of devices and add many', function(t) {
 
     t.plan(6);
 
-    uid2 = devices.add(type, channel1, 'b', 1002);
-    uid5 = devices.add(type, channel2, 'e', 1005);
+    uid2 = devices.add(type, channel1, 'b', 1002, 'udp4');
+    uid5 = devices.add(type, channel2, 'e', 1005, 'udp4');
 
-    t.true(typeof devices.add(type, channel1, 'a', 1001) === 'string', 'added a toy');
+    t.true(typeof devices.add(type, channel1, 'a', 1001, 'udp4') === 'string', 'added a toy');
     t.true(typeof uid2 === 'string', 'added a toy');
-    t.true(typeof devices.add(type, channel1, 'c', 1003) === 'string', 'added a toy');
+    t.true(typeof devices.add(type, channel1, 'c', 1003, 'udp4') === 'string', 'added a toy');
 
-    t.true(typeof devices.add(type, channel2, 'd', 1004) === 'string', 'added a toy');
+    t.true(typeof devices.add(type, channel2, 'd', 1004, 'udp4') === 'string', 'added a toy');
     t.true(typeof uid5 === 'string', 'added a toy');
 
     t.equal(devices.add(), undefined, 'must pass parameters to add');
@@ -60,13 +60,16 @@ test('Can retreive the toys', function(t) {
         type: type,
         channel: channel1,
         address: 'b',
-        port: 1002
+        port: 1002,
+        protocol: 'udp4'
+
     });
     t.deepEqual(devices.get(uid5), {
         type: type,
         channel: channel2,
         address: 'e',
-        port: 1005
+        port: 1005,
+        protocol: 'udp4'
     });
 
     t.end();
@@ -96,7 +99,8 @@ test('Can update a device', function(t) {
         type: type,
         channel: channel2,
         address: 'x',
-        port: 3005
+        port: 3005,
+        protocol: 'udp4'
     }, 'device updates correctly');
 
     t.end();
