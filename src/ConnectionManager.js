@@ -23,19 +23,12 @@
 
 'use strict';
 
-var DEFAULTS = {
-    port: 33330,
-    udp4: true,
-    tcp: true,
-    log: console.log
-};
-
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 // UDP transport layer
 var dgram = require('dgram');
-var common = require('./common');
+var messageHandler = require('./messageHandler');
 
 /**
  * The connection manager will handle the TCP and UDP transport.  As well as
@@ -44,18 +37,15 @@ var common = require('./common');
  */
 function ConnectionManager (options) {
 
-    if (!options) {
-        options = DEFAULTS;
-    }
-    this.log = options.log || DEFAULTS.log;
+    this.log = options.log;
 
     if (!(options.udp4 === false)) {
         this.setupUDP();
     }
 
-    if (!(options.tcp4 === false)) {
-        console.error('tcp not yet ready');
-    //     this.setupTCP();
+    if (!(options.tcp === false)) {
+        // console.error('tcp not yet ready');
+        this.setupTCP();
     }
     EventEmitter.call(this);
 
@@ -94,9 +84,7 @@ ConnectionManager.prototype.setupUDP = function () {
 
         this.emit(msgObj.type, msgObj, remote);
 
-        if (typeof this.log === 'function') {
-            this.log(new Date(), remote.address + ':' + remote.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
-        }
+        this.log(new Date(), remote.address + ':' + remote.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
     }
 };
 
@@ -118,6 +106,64 @@ ConnectionManager.prototype.listenUDP4 = function(port, address) {
 };
 
 
+ConnectionManager.prototype.setupUDP = function () {
+
+    var self = this;
+    this.udp4 = dgram.createSocket('udp4');
+
+    this.udp4.on('error', handleError);
+    this.udp4.on('message', function (message, remote) {
+        remote.protocol = 'udp4';
+        handleMessage.bind(self)(message, remote);
+    });
+
+    function handleError(err) {
+        console.log(err);
+        this.emit('error', err);
+    }
+
+    function handleMessage(message, remote) {
+
+        var msgObj;
+        try {
+            msgObj = parseMessage(message, remote);
+        } catch (ex) {
+            this.emit('error', ex);
+            return;
+        }
+
+        this.emit(msgObj.type, msgObj, remote);
+
+        this.log(new Date(), remote.address + ':' + remote.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
+    }
+};
+
+ConnectionManager.prototype.listenTCP = function(port, address) {
+
+    var net = require('net');
+
+    this.tcp = net.createServer(function(socket) {
+        socket.on('data', function (data) {
+          console.log(typeof data, data);
+          socket.write(data);
+        });
+    });
+    this.tcp.on('listening', function () {
+        self.emit('listening', port, address);
+    });
+    this.tcp.listen(port, address);
+
+    // var self = this;
+    // this.udp4.on('listening', function () {
+    //     self.emit('listening', port, address);
+    // });
+    // this.udp4.bind({
+    //     port: port,
+    //     address: address
+    // });
+};
+
+
 /**
  * Parse an incoming message and ensure it's valid.  Convert it to an object that
  * can ben sent to other listeners.
@@ -133,7 +179,7 @@ function parseMessage(message, remote) {
     var msgObj;
 
     try {
-        msgObj = common.decompress(message);
+        msgObj = messageHandler.parseIncomingMessage(message);
     } catch (ex) {
         throw new Error('There was an error parsing the incoming message: ' + ex);
     }
@@ -181,14 +227,14 @@ ConnectionManager.prototype.closeAll = function() {
  */
 ConnectionManager.prototype.send = function(protocol, msgObj, port, address) {
 
-    var msgComp = common.compress(msgObj);
+    var msgComp = messageHandler.packOutgoingMessage(msgObj);
 
     if (protocol === 'udp4') {
         this.udp4.send(msgComp, 0, msgComp.length, port, address, handleError);
         return;
     }
 
-    if (protocol === 'tcp4') {
+    if (protocol === 'tcp') {
         // this.tcp.send(msgComp, 0, msgComp.length, port, address, handleError);
         return;
     }
@@ -206,10 +252,10 @@ ConnectionManager.prototype.send = function(protocol, msgObj, port, address) {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-ConnectionManager.prototype.sendError = function(err, remote) {
-
-    this.send(remote.protocol, err, remote.port, remote.address);
-
-};
+// ConnectionManager.prototype.sendError = function(err, remote) {
+//
+//     this.send(remote.protocol, err, remote.port, remote.address);
+//
+// };
 
 module.exports = ConnectionManager;

@@ -27,7 +27,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var PingManager = require('./PingManager');
-var ConnectionManager = require('./ConnectionManager');
+var UniSocket = require('./UniSocket');
 
 var NET_TIMEOUT = 5 * 1000;
 
@@ -39,15 +39,19 @@ function Device(settings) {
     this.deviceType = settings.deviceType;
     this.log = settings.log;
 
-    if (settings.udp4 === true && settings.tcp4 === true) {
+    if (settings.udp4 === true && settings.tcp === true) {
         throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
     }
-    this.protocol = settings.udp4 ? 'udp4' : 'tcp4';
+    if (settings.udp4 === false && settings.tcp === false) {
+        throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
+    }
+
+    this.pingManager = new PingManager();
+    this.connection = new UniSocket();
+    var protocol = settings.udp4 ? 'udp4' : 'tcp';
+    this.connection.createProxySocket(protocol, settings.proxyUrl, settings.port);
 
     this.uid = undefined;
-    this.pingManager = new PingManager();
-    this.connection = new ConnectionManager(settings);
-
     // This keeps a track of ther controller sequenceNumber.  If a command with a
     // smaller number is received, we drop it.
     this.remoteSeqNum = 0;
@@ -69,9 +73,9 @@ function Device(settings) {
         self.pingManager.respond(msgObj.seq, pingTime);
     });
 
-    function reEmit(responseMsgObj, remote) {
+    function reEmit(responseMsgObj) {
         // Override global 'ip' variable, this caches our IP address which is faster than url.
-        self.proxyIp = remote.address;
+        // self.proxyIp = remote.address;
         self.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
     }
 
@@ -193,8 +197,7 @@ Device.prototype.send = function(type, data) {
     }
 
     // Send the message to the proxy.  Use the IP have we have determined it.
-    this.proxyIp = this.proxyIp || this.proxyUrl;
-    this.connection.send(this.protocol, msgObj, this.port, this.proxyIp);
+    this.connection.send(msgObj);
     this.mySeqNum += 1;
 
 };

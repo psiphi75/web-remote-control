@@ -44,9 +44,7 @@ function Prox(settings) {
     this.server.listenUDP4(settings.port);
 
     this.server.on('listening', function (localPort, localAddress) {
-        if (self.log) {
-            self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
-        }
+        self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
     });
 
     this.server.on('error', function(err) {
@@ -81,7 +79,7 @@ Prox.prototype.registerDevice = function(msgObj, remote) {
 
     if (!this.devices.validDeviceType(msgObj.data)) {
         console.error('Invalid device type: ', msgObj.data);
-        this.server.sendError(remote.protocol, 'error registering device', remote);
+        // this.server.sendError(remote.protocol, 'error registering device', remote);
         return;
     }
 

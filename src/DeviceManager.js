@@ -40,7 +40,7 @@ function DeviceManager() {
  * @param  {string} channel The channel to operate on (this is provided by the device).
  * @param  {string} address The IP address.
  * @param  {number} port    The port number
- * @param  {string} protocol 'tcp4' or 'udp4'
+ * @param  {string} protocol 'tcp' or 'udp4'
  * @return {uid}            The UID of the device.
  */
 DeviceManager.prototype.add = function(type, channel, address, port, protocol) {

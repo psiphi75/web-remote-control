@@ -23,10 +23,51 @@
 
 'use strict';
 
+/**
+ * Parse an incoming message and ensure it's valid.  Convert it to an object that
+ * can ben sent to other listeners.
+ *
+ * @param  {[uint8]?} message  The message from the datastream
+ * @param  {object} remote   The remote host
+ * @param  {string} protocol The protocol we are using
+ * @return {object}          The valid object.
+ * @throws Error when the message is invalid.
+ */
+exports.parseIncomingMessage = function(message) {
+
+    var msgObj;
+
+    try {
+        msgObj = decompress(message);
+    } catch (ex) {
+        throw new Error('There was an error parsing the incoming message: ' + ex);
+    }
+
+    if (typeof msgObj !== 'object') {
+        throw new Error('The incoming message is corrupt');
+    }
+
+    switch (msgObj.type) {
+        case 'register':
+        case 'ping':
+        case 'status':
+        case 'command':
+            break;
+        default:
+            throw new Error('An invalid incoming message arrived: ', msgObj.toString());
+    }
+
+    return msgObj;
+};
+
+exports.packOutgoingMessage = function(msgObj) {
+        return compress(msgObj);
+};
+
 // TODO: Would be nice to get compression going.  But this did not work nicely.
 // var smaz = require('smaz');
 
-exports.compress = function(data) {
+var compress = function(data) {
     // console.log(1, data);
     // var str = JSON.stringify(data);
     // console.log(2, str);
@@ -42,7 +83,7 @@ exports.compress = function(data) {
 
 };
 
-exports.decompress = function(compressedData) {
+var decompress = function(compressedData) {
 
     var buf = compressedData;
     var str = buf.toString();

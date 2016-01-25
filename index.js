@@ -70,19 +70,20 @@ function init(type) {
         if (!params) {
             params = {};
         }
+
         var settings = {
             proxyUrl: params.proxyUrl || defaults.proxyUrl,
             channel: params.channel || defaults.channel,
             keepalive: params.keepalive || defaults.keepalive,
             port: params.port || defaults.port,
             log: params.log || defaults.log,
-            tcp: params.tcp || defaults.tcp,
-            udp4: params.udp4 || defaults.udp4,
+            tcp: parseBool(params.tcp, defaults.tcp),
+            udp4: parseBool(params.udp4, defaults.udp4),
             deviceType: type
         };
 
-        if (typeof settings.log !== 'function') {
-            throw new Error('The log parameter must be a function.');
+        if (typeof params.log !== 'function') {
+            params.log = require('./defaults').log;
         }
 
         var obj;
@@ -101,4 +102,11 @@ function init(type) {
         }
 
     };
+}
+
+function parseBool(val1, val2) {
+    if (typeof val1 === 'undefined') {
+        return val2;
+    }
+    return val1;
 }

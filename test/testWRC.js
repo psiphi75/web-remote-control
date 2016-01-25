@@ -25,7 +25,7 @@
 
 var test = require('tape');
 
-var cmn = require('../src/common');
+var messageHandler = require('../src/messageHandler');
 var wrc = require('../index');
 var proxy = wrc.createProxy({log: function(){} });
 
@@ -39,7 +39,7 @@ test('Compression works', function(t) {
 
     var obj = { type: 'ping', channel: 'my unique id-1', data: '1453020903937' };
 
-    t.deepEqual(cmn.decompress(cmn.compress(obj)), obj, 'Can compress and decompress');
+    t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
 
 });
 
