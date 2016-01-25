@@ -23,10 +23,6 @@
 
 'use strict';
 
-var Toy = require('./src/Device');
-var Controller = require('./src/Device');
-var Proxy = require('./src/Proxy');
-
 var defaults = {
     // This is the URL were the proxy is located.  Only Toys and Controllers can
     // configure this.
@@ -50,7 +46,7 @@ var defaults = {
     log: console.log,
 
     // Use the TCP Protocol - only the proxy can use both TCP and UDP.
-    tcp4: false,
+    tcp: false,
 
     // Use the UDP protocol - only the proxy can use both TCP and UDP.
     udp4: true
@@ -80,18 +76,26 @@ function init(type) {
             keepalive: params.keepalive || defaults.keepalive,
             port: params.port || defaults.port,
             log: params.log || defaults.log,
-            tcp: params.tcp4 || defaults.tcp4,
-            udp: params.udp4 || defaults.udp4,
+            tcp: params.tcp || defaults.tcp,
+            udp4: params.udp4 || defaults.udp4,
             deviceType: type
         };
 
+        if (typeof settings.log !== 'function') {
+            throw new Error('The log parameter must be a function.');
+        }
+
+        var obj;
         switch (type) {
             case 'proxy':
-                return new Proxy(settings);
+                obj = require('./src/Proxy');
+                return new obj(settings);
             case 'toy':
-                return new Toy(settings);
+                obj = require('./src/Device');
+                return new obj(settings);
             case 'controller':
-                return new Controller(settings);
+                obj = require('./src/Device');
+                return new obj(settings);
             default:
                 throw new Error('Could not determine server type.');
         }

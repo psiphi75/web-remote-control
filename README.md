@@ -96,7 +96,7 @@ var defaults = {
   log: console.log,
 
   // Use the TCP Protocol - only the proxy can use both TCP and UDP.
-  tcp4: false,
+  tcp: false,
 
   // Use the UDP protocol - only the proxy can use both TCP and UDP.
   udp4: true

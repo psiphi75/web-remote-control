@@ -31,7 +31,7 @@ var proxy = wrc.createProxy({log: function(){} });
 
 var channel1 = 'channel-1';
 var toy1;
-var controller1 = wrc.createController({ channel: channel1 });
+var controller1 = wrc.createController({ channel: channel1, log: function(){} });
 
 
 test('Compression works', function(t) {
@@ -63,7 +63,7 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
         proxy.removeListener('register', fn);
     });
 
-    toy1 = wrc.createToy({ channel: channel1 });
+    toy1 = wrc.createToy({ channel: channel1, log: function(){} });
 
     toy1.on('register', function fnreg(msgUid) {
         t.true(typeof msgUid === 'string', 'the uid is the correct type');
