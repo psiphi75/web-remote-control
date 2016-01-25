@@ -25,7 +25,7 @@
 
 var DEFAULTS = {
     port: 33330,
-    udp: true,
+    udp4: true,
     tcp: true,
     log: console.log
 };
@@ -69,10 +69,10 @@ util.inherits(ConnectionManager, EventEmitter);
 ConnectionManager.prototype.setupUDP = function () {
 
     var self = this;
-    this.udp = dgram.createSocket('udp4');
+    this.udp4 = dgram.createSocket('udp4');
 
-    this.udp.on('error', handleError);
-    this.udp.on('message', function (message, remote) {
+    this.udp4.on('error', handleError);
+    this.udp4.on('message', function (message, remote) {
         remote.protocol = 'udp4';
         handleMessage.bind(self)(message, remote);
     });
@@ -108,10 +108,10 @@ ConnectionManager.prototype.setupUDP = function () {
  */
 ConnectionManager.prototype.listenUDP4 = function(port, address) {
     var self = this;
-    this.udp.on('listening', function () {
+    this.udp4.on('listening', function () {
         self.emit('listening', port, address);
     });
-    this.udp.bind({
+    this.udp4.bind({
         port: port,
         address: address
     });
@@ -163,8 +163,8 @@ function parseMessage(message, remote) {
  */
 ConnectionManager.prototype.closeAll = function() {
 
-    if (this.udp) {
-        this.udp.close();
+    if (this.udp4) {
+        this.udp4.close();
     }
 
     if (this.tcp) {
@@ -184,7 +184,7 @@ ConnectionManager.prototype.send = function(protocol, msgObj, port, address) {
     var msgComp = common.compress(msgObj);
 
     if (protocol === 'udp4') {
-        this.udp.send(msgComp, 0, msgComp.length, port, address, handleError);
+        this.udp4.send(msgComp, 0, msgComp.length, port, address, handleError);
         return;
     }
 

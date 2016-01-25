@@ -42,7 +42,7 @@ function Device(settings) {
     if (settings.udp4 === true && settings.tcp4 === true) {
         throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
     }
-    this.protocol = settings.udp ? 'udp4' : 'tcp4';
+    this.protocol = settings.udp4 ? 'udp4' : 'tcp4';
 
     this.uid = undefined;
     this.pingManager = new PingManager();
