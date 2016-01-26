@@ -75,25 +75,32 @@ Prox.prototype.close = function() {
  * @param  {object} msgObj Message object with channel info in the 'data' parameter.
  * @param  {object} remote The sender socket
  */
-Prox.prototype.registerDevice = function(msgObj, remote) {
+Prox.prototype.registerDevice = function(msgObj) {
 
-    if (!this.devices.validDeviceType(msgObj.data)) {
-        console.error('Invalid device type: ', msgObj.data);
-        // this.server.sendError(remote.protocol, 'error registering device', remote);
+    if (!msgObj.data) {
+        console.error('msgObj has no data: ', msgObj);
         return;
     }
 
-    if (typeof msgObj.channel === 'undefined') {
+    var type = msgObj.data.type;
+    var channel = msgObj.data.channel;
+
+    if (!this.devices.validDeviceType(type)) {
+        console.error('Invalid device type: ', type);
+        return;
+    }
+
+    if (typeof channel === 'undefined') {
         console.error('registerDevice: device channel is undefined');
         return;
     }
 
-    var uid = this.devices.add(msgObj.data, msgObj.channel, remote.address, remote.port, msgObj.protocol);
+    var uid = this.devices.add(type, channel, msgObj.socket);
     msgObj.uid = uid;
     msgObj.data = uid;
 
-    this.emit(msgObj.type, msgObj);
     this.send(msgObj, this.devices.get(uid));
+    this.emit(msgObj.type, msgObj);
 };
 
 
@@ -102,17 +109,17 @@ Prox.prototype.registerDevice = function(msgObj, remote) {
  * @param  {object} msgObj The message object sent by the toy/controller.
  * @param  {object} remote The sender socket
  */
-Prox.prototype.respondToPing = function(msgObj, remote) {
+Prox.prototype.respondToPing = function(msgObj) {
 
-    var device = this.devices.update(msgObj.uid, remote.address, remote.port);
+    var device = this.devices.update(msgObj.uid, msgObj.socket);
 
     if (!device) {
-        console.error('Unable to find the device: ', msgObj);
+        console.error('Unable to find the device to update: ', msgObj);
         return;
     }
 
+    this.send(msgObj);
     this.emit(msgObj.type, msgObj);
-    this.send(msgObj, device);
 };
 
 
@@ -121,8 +128,8 @@ Prox.prototype.respondToPing = function(msgObj, remote) {
  * @param  {object} msgObj The message object we are forwarding.
  * @param  {object} remote The sender socket.
  */
-Prox.prototype.forwardCommand = function(msgObj, remote) {
-    this.forward('toy', msgObj, remote);
+Prox.prototype.forwardCommand = function(msgObj) {
+    this.forward('toy', msgObj);
 };
 
 
@@ -131,8 +138,8 @@ Prox.prototype.forwardCommand = function(msgObj, remote) {
  * @param  {object} msgObj The message object we are forwarding.
  * @param  {object} remote The sender socket.
  */
-Prox.prototype.forwardStatus = function(msgObj, remote) {
-    this.forward('controller', msgObj, remote);
+Prox.prototype.forwardStatus = function(msgObj) {
+    this.forward('controller', msgObj);
 };
 
 
@@ -144,19 +151,27 @@ Prox.prototype.forwardStatus = function(msgObj, remote) {
  * @param  {object} msgObj The message object we are forwarding.
  * @param  {object} remote The sender socket.
  */
-Prox.prototype.forward = function(forwardToType, msgObj, remote) {
+Prox.prototype.forward = function(forwardToType, msgObj) {
 
     var self = this;
-    var controller = this.devices.update(msgObj.uid, remote.address, remote.port);
+    var remoteDevice = this.devices.update(msgObj.uid, msgObj.socket);
 
-    if (!controller) {
-        console.error('Prox.forwardCommand(): \'controller\' not found: ', msgObj.uid);
+    if (!remoteDevice) {
+        console.error('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
         return;
     }
-    var uidList = this.devices.getAll(forwardToType, controller.channel);
+    var uidList = this.devices.getAll(forwardToType, remoteDevice.channel);
 
     uidList.forEach(function(uid) {
-        self.send(msgObj, self.devices.get(uid));
+        var sendToDevice = {
+            type: msgObj.type,
+            seq: msgObj.seq,
+            uid: uid,
+            data: msgObj.data,
+            socket: self.devices.getSocket(uid)
+        };
+
+        self.send(sendToDevice);
     });
 
     this.emit(msgObj.type, msgObj);
@@ -168,8 +183,8 @@ Prox.prototype.forward = function(forwardToType, msgObj, remote) {
  * @param  {object} msgObj The object to send as JSON.
  * @param  {object} device The device to send this to.
  */
-Prox.prototype.send = function(msgObj, device) {
-    this.server.send(device.protocol, msgObj, device.port, device.address);
+Prox.prototype.send = function(msgObj) {
+    this.server.send(msgObj);
 };
 
 

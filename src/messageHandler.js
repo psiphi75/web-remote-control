@@ -47,21 +47,52 @@ exports.parseIncomingMessage = function(message) {
         throw new Error('The incoming message is corrupt');
     }
 
+    /* Check the type is valid */
+    var requiresList;
     switch (msgObj.type) {
         case 'register':
+            requiresList = ['type', 'seq', 'data'];
+            break;
         case 'ping':
         case 'status':
         case 'command':
+            requiresList = ['type', 'seq', 'data', 'uid'];
             break;
         default:
-            throw new Error('An invalid incoming message arrived: ', msgObj.toString());
+            throw new Error('An invalid incoming message arrived: ' + msgObj.toString());
+    }
+
+    /* Check the properties are all valid */
+    var count = 0;
+    for (var key in msgObj) {
+        if (msgObj.hasOwnProperty(key) && requiresList.indexOf(key) >= 0) {
+            count += 1;
+        }
+    }
+    if (count !== requiresList.length) {
+        throw new Error('The message that arrived is not valid, it has too many or two few properties: ' + msgObj.toString());
     }
 
     return msgObj;
 };
 
 exports.packOutgoingMessage = function(msgObj) {
-        return compress(msgObj);
+
+    var cleanMsgObj = {};
+    if (msgObj.hasOwnProperty('type')) {
+        cleanMsgObj.type = msgObj.type;
+    }
+    if (msgObj.hasOwnProperty('seq')) {
+        cleanMsgObj.seq = msgObj.seq;
+    }
+    if (msgObj.hasOwnProperty('data')) {
+        cleanMsgObj.data = msgObj.data;
+    }
+    if (msgObj.hasOwnProperty('uid')) {
+        cleanMsgObj.uid = msgObj.uid;
+    }
+    return compress(cleanMsgObj);
+
 };
 
 // TODO: Would be nice to get compression going.  But this did not work nicely.

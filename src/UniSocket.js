@@ -81,7 +81,7 @@ function handleError(err) {
 }
 
 function handleMessage(message) {
-    console.log(typeof message, message.toString())
+    // console.log(typeof message, message.toString())
     var msgObj;
     try {
         msgObj = messageHandler.parseIncomingMessage(message);
@@ -133,15 +133,15 @@ UniSocket.prototype.closeAll = function() {
  */
 UniSocket.prototype.send = function(msgObj) {
 
-    var msgOut = messageHandler.packOutgoingMessage(msgObj);
+    var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
 
     if (this.udp4) {
-        this.udp4.send(msgOut, 0, msgOut.length, this.remotePort, this.ip);
+        this.udp4.send(sendBuffer, 0, sendBuffer.length, this.remotePort, this.remoteAddress);
         return;
     }
 
     if (this.tcp) {
-        this.tcp.write(msgOut);
+        this.tcp.write(sendBuffer);
         return;
     }
 

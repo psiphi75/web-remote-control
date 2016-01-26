@@ -31,13 +31,13 @@ var proxy = wrc.createProxy({log: function(){} });
 
 var channel1 = 'channel-1';
 var toy1;
-var controller1 = wrc.createController({ channel: channel1, log: function(){} });
+var controller1 = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0 });
 
 
 test('Compression works', function(t) {
     t.plan(1);
 
-    var obj = { type: 'ping', channel: 'my unique id-1', data: '1453020903937' };
+    var obj = { type: 'ping', seq: 1234, uid: '123422', data: '1453020903937' };
 
     t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
 
@@ -63,7 +63,7 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
         proxy.removeListener('register', fn);
     });
 
-    toy1 = wrc.createToy({ channel: channel1, log: function(){} });
+    toy1 = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0 });
 
     toy1.on('register', function fnreg(msgUid) {
         t.true(typeof msgUid === 'string', 'the uid is the correct type');
@@ -126,8 +126,12 @@ test('Test controller-1 can send commands to toy-1 (text)', function(t) {
     var cmdTxt = 'simon say\'s do this';
 
     toy1.on('command', function fn (respCmdTxt) {
-        t.equal(respCmdTxt, cmdTxt, 'command was correct');
-        t.end();
+
+        // Slow things down just a bit
+        setTimeout(function() {
+            t.equal(respCmdTxt, cmdTxt, 'command was correct');
+            t.end();
+        }, 50);
 
         toy1.removeListener('command', fn);
     });

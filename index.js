@@ -38,8 +38,9 @@ var defaults = {
     channel: 1,
 
     // How often the device pings the proxy.  This helps ensure the connection
-    // is kept alive.  You can disable this by setting it to 0 (zero).
-    keepalive: 30,
+    // is kept alive.  You can disable this by setting it to 0 (zero). Time is
+    // in milliseconds.
+    keepalive: 30 * 1000,
 
     // This determines the logging to use.  By default it logs to the standard
     // console.
@@ -74,11 +75,11 @@ function init(type) {
         var settings = {
             proxyUrl: params.proxyUrl || defaults.proxyUrl,
             channel: params.channel || defaults.channel,
-            keepalive: params.keepalive || defaults.keepalive,
+            keepalive: parseFalsey(params.keepalive, defaults.keepalive),
             port: params.port || defaults.port,
             log: params.log || defaults.log,
-            tcp: parseBool(params.tcp, defaults.tcp),
-            udp4: parseBool(params.udp4, defaults.udp4),
+            tcp: parseFalsey(params.tcp, defaults.tcp),
+            udp4: parseFalsey(params.udp4, defaults.udp4),
             deviceType: type
         };
 
@@ -104,7 +105,7 @@ function init(type) {
     };
 }
 
-function parseBool(val1, val2) {
+function parseFalsey(val1, val2) {
     if (typeof val1 === 'undefined') {
         return val2;
     }

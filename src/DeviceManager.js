@@ -36,37 +36,33 @@ function DeviceManager() {
 
 /**
  * Add a new toy/controller to the device manager.
- * @param  {string} type    'toy' or 'controller'.
+ * @param  {string} deviceType    'toy' or 'controller'.
  * @param  {string} channel The channel to operate on (this is provided by the device).
  * @param  {string} address The IP address.
  * @param  {number} port    The port number
  * @param  {string} protocol 'tcp' or 'udp4'
  * @return {uid}            The UID of the device.
  */
-DeviceManager.prototype.add = function(type, channel, address, port, protocol) {
+DeviceManager.prototype.add = function(deviceType, channel, socket) {
 
     switch (undefined) { // eslint-disable-line default-case
-        case type:
+        case deviceType:
         case channel:
-        case address:
-        case port:
-        case protocol:
-            console.error('DeviceManager.add(): one of the inputs are undefined.'/*, new Error().stack*/);
+        case socket:
+            console.error('DeviceManager.add(): one of the inputs are undefined.');
             return undefined;
     }
 
-    if (!this.validDeviceType(type)) {
-        console.error('DeviceManager.getAll(): "type" should be "toy" or "controller", not: ', type);
+    if (!this.validDeviceType(deviceType)) {
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller", not: ', deviceType);
         return undefined;
     }
 
     var uid = makeUID();
     this.list[uid] = {
-        type: type,
+        deviceType: deviceType,
         channel: channel,
-        address: address,
-        port: port,
-        protocol: protocol
+        socket: socket
     };
     return uid;
 
@@ -100,16 +96,26 @@ DeviceManager.prototype.get = function(uid) {
     return this.list[uid];
 };
 
+
+/**
+ * Get a socket from the device with the given UID.
+ * @param  {string} uid The UID.
+ * @return {object}     The socket details.
+ */
+DeviceManager.prototype.getSocket = function(uid) {
+    return this.list[uid].socket;
+};
+
 /**
  * Get all devices on a channel.  But only by device type (toy/controller).
- * @param  {string} type    'toy' or 'controllers'
+ * @param  {string} deviceType    'toy' or 'controllers'
  * @param  {string} channel The channel.
  * @return {array}          An array of UID strings.
  */
-DeviceManager.prototype.getAll = function(type, channel) {
+DeviceManager.prototype.getAll = function(deviceType, channel) {
 
-    if (!this.validDeviceType(type)) {
-        console.error('DeviceManager.getAll(): "type" should be "toy" or "controller", not: ', type);
+    if (!this.validDeviceType(deviceType)) {
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller", not: ', deviceType);
         return undefined;
     }
 
@@ -117,7 +123,7 @@ DeviceManager.prototype.getAll = function(type, channel) {
     var self = this;
     Object.keys(this.list).forEach( function(uid) {
         var dev = self.list[uid];
-        if (dev.type === type && dev.channel === channel) {
+        if (dev.deviceType === deviceType && dev.channel === channel) {
             devList.push(uid);
         }
     });
@@ -133,12 +139,11 @@ DeviceManager.prototype.getAll = function(type, channel) {
  * @param  {number} port The port the device was last seen on.
  * @return {object}      The updated device details.
  */
-DeviceManager.prototype.update = function(uid, address, port) {
+DeviceManager.prototype.update = function(uid, socket) {
     if (!this.list[uid]) {
         return undefined;
     }
-    this.list[uid].address = address || this.list[uid].address;
-    this.list[uid].port = port || this.list[uid].port;
+    this.list[uid].socket = socket || this.list[uid].socket;
     return this.list[uid];
 };
 
@@ -148,8 +153,8 @@ DeviceManager.prototype.update = function(uid, address, port) {
  * @param  {string} type The name of the device to check.
  * @return {boolean}     True if the device type is valid.
  */
-DeviceManager.prototype.validDeviceType = function(type) {
-    switch (type) {
+DeviceManager.prototype.validDeviceType = function(deviceType) {
+    switch (deviceType) {
         case 'toy':
         case 'controller':
             return true;

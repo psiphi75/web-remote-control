@@ -61,7 +61,7 @@
      t.plan(3);
 
      var pm = new PingManager();
-     pm.PING_TIMEOUT = 100;
+     pm.MAX_PING_WAIT_TIME = 100;
 
      var pingResponseTime = 0;
      var fn1 = function (time) {
@@ -91,6 +91,6 @@ test('Pings can be resolved', function(t) {
         }, 100);
     };
     pm.add(1, fn1);
-    pm.respond(1, 123);
+    pm.handleIncomingPing(1, 123);
 
 });

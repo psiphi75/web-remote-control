@@ -88,7 +88,7 @@ var defaults = {
   // How often the device pings the proxy.  This helps ensure the
   // connection is kept alive.  You can disable this by setting it to
   // 0 (zero).
-  keepalive: 30,
+  keepalive: 30 * 1000,
 
   // This determines the logging to use.  By default it logs to the
   // standard console.  Set this to `function () {}` if you wish to not

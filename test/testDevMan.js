@@ -25,7 +25,7 @@ var test = require('tape');
 var DevMan = require('../src/DeviceManager');
 var devices = new DevMan();
 
-var type = 'toy';
+var deviceType = 'toy';
 var channel1 = 'chan1';
 var channel2 = 'chan2';
 var uid2;
@@ -35,14 +35,14 @@ test('Can create a list of devices and add many', function(t) {
 
     t.plan(6);
 
-    uid2 = devices.add(type, channel1, 'b', 1002, 'udp4');
-    uid5 = devices.add(type, channel2, 'e', 1005, 'udp4');
+    uid2 = devices.add(deviceType, channel1, 'b');
+    uid5 = devices.add(deviceType, channel2, 'e');
 
-    t.true(typeof devices.add(type, channel1, 'a', 1001, 'udp4') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel1, 'a') === 'string', 'added a toy');
     t.true(typeof uid2 === 'string', 'added a toy');
-    t.true(typeof devices.add(type, channel1, 'c', 1003, 'udp4') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel1, 'c') === 'string', 'added a toy');
 
-    t.true(typeof devices.add(type, channel2, 'd', 1004, 'udp4') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel2, 'd') === 'string', 'added a toy');
     t.true(typeof uid5 === 'string', 'added a toy');
 
     t.equal(devices.add(), undefined, 'must pass parameters to add');
@@ -57,19 +57,14 @@ test('Can retreive the toys', function(t) {
     t.plan(2);
 
     t.deepEqual(devices.get(uid2), {
-        type: type,
+        deviceType: deviceType,
         channel: channel1,
-        address: 'b',
-        port: 1002,
-        protocol: 'udp4'
-
+        socket: 'b'
     });
     t.deepEqual(devices.get(uid5), {
-        type: type,
+        deviceType: deviceType,
         channel: channel2,
-        address: 'e',
-        port: 1005,
-        protocol: 'udp4'
+        socket: 'e'
     });
 
     t.end();
@@ -80,9 +75,9 @@ test('Can get devices on channel and remove devices', function(t) {
 
     t.plan(4);
 
-    t.equal(devices.getAll(type, channel1).length, 3);
+    t.equal(devices.getAll(deviceType, channel1).length, 3);
     t.true(devices.remove(uid2), 'can remove device');
-    t.equal(devices.getAll(type, channel1).length, 2);
+    t.equal(devices.getAll(deviceType, channel1).length, 2);
     t.false(devices.remove(uid2), 'can not remove device');
 
     t.end();
@@ -96,11 +91,9 @@ test('Can update a device', function(t) {
     devices.update(uid5, 'x', 3005);
 
     t.deepEqual(devices.get(uid5), {
-        type: type,
+        deviceType: deviceType,
         channel: channel2,
-        address: 'x',
-        port: 3005,
-        protocol: 'udp4'
+        socket: 'x'
     }, 'device updates correctly');
 
     t.end();

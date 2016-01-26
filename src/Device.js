@@ -46,7 +46,7 @@ function Device(settings) {
         throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
     }
 
-    this.pingManager = new PingManager();
+    this.pingManager = new PingManager(this.keepalive);
     this.connection = new UniSocket();
     var protocol = settings.udp4 ? 'udp4' : 'tcp';
     this.connection.createProxySocket(protocol, settings.proxyUrl, settings.port);
@@ -70,7 +70,7 @@ function Device(settings) {
     this.connection.on('command', reEmit);
     this.connection.on('ping', function fn(msgObj) {
         var pingTime = (new Date()).getTime() - parseInt(msgObj.data);
-        self.pingManager.respond(msgObj.seq, pingTime);
+        self.pingManager.handleIncomingPing(msgObj.seq, pingTime);
     });
 
     function reEmit(responseMsgObj) {
@@ -96,10 +96,13 @@ util.inherits(Device, EventEmitter);
  */
 Device.prototype.register = function () {
 
-    this.on('register', receiveRegisterResponse);
-    this.send('register', this.deviceType);
+    this.send('register', {
+        type: this.deviceType,
+        channel: this.channel
+    });
 
     var self = this;
+    this.on('register', receiveRegisterResponse);
     function receiveRegisterResponse(uid) {
 
         if (!self.uid) {
@@ -186,15 +189,10 @@ Device.prototype.send = function(type, data) {
 
     var msgObj = {
         type: type,
+        uid: this.uid,
         seq: this.mySeqNum,
         data: data
     };
-
-    if (type === 'register') {
-        msgObj.channel = this.channel;
-    } else {
-        msgObj.uid = this.uid;
-    }
 
     // Send the message to the proxy.  Use the IP have we have determined it.
     this.connection.send(msgObj);
