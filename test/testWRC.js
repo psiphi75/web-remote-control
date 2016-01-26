@@ -23,6 +23,7 @@
 
 'use strict';
 
+// Allows us to change the tests (UDP vs TCP) from the command line
 var UDP = true;
 var TCP = false;
 if (process.env.PROTOCOL && process.env.PROTOCOL.toUpperCase() === 'TCP') {
@@ -30,168 +31,208 @@ if (process.env.PROTOCOL && process.env.PROTOCOL.toUpperCase() === 'TCP') {
     TCP = true;
 }
 
-var test = require('tape');
+// Allows us to test against a remote proxy, from the command line
+var PROXY_ADDRESS = 'localhost';
+var isLocalProxy = true;
+if (process.env.PROXY_ADDRESS) {
+    isLocalProxy = false;
+    PROXY_ADDRESS = process.env.PROXY_ADDRESS;
+}
 
+var test = require('tape');
 var messageHandler = require('../src/messageHandler');
 var wrc = require('../index');
-var proxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP });
 
 var channel1 = 'channel-1';
-var toy1;
-var controller1 = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 
 
-test('Compression works', function(t) {
-    t.plan(1);
+if (isLocalProxy) {
 
-    var obj = { type: 'ping', seq: 1234, uid: '123422', data: '1453020903937' };
+    // This is not dependant on local, but we don't need to over test it.
+    test('Compression works', function(t) {
+        t.plan(1);
 
-    t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
+        var obj = { type: 'ping', seq: 1234, uid: '123422', data: '1453020903937' };
 
-});
+        t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
 
-
-test('Test Proxy can be created and a toy can be registered', function(t) {
-
-    t.plan(4);
-    var tests = 0;
-
-    var uid1;
-    var uid2;
-
-    proxy.on('register', function fn(msgObj) {
-        t.equal(msgObj.type, 'register', 'message is correct type');
-        uid1 = msgObj.uid;
-        t.true(typeof msgObj.uid === 'string', 'the uid is the correct type');
-
-        tests += 2;
-        wrapUp();
-
-        proxy.removeListener('register', fn);
     });
 
-    toy1 = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 
-    toy1.on('register', function fnreg(msgUid) {
-        t.true(typeof msgUid === 'string', 'the uid is the correct type');
-        uid2 = msgUid;
+    var localProxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP });
+    var localToy;
+    var localController = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 
-        tests += 1;
-        wrapUp();
+    test('Test Proxy can be created and a toy can be registered', function(t) {
 
-        toy1.removeListener('register', fnreg);
-    });
+        t.plan(4);
+        var tests = 0;
 
-    function wrapUp() {
-        if (tests === 3) {
-            t.equal(uid1, uid2, 'The UIDs are the same');
-            t.end();
+        var uid1;
+        var uid2;
+
+        localProxy.on('register', function fn(msgObj) {
+            t.equal(msgObj.type, 'register', 'message is correct type');
+            uid1 = msgObj.uid;
+            t.true(typeof msgObj.uid === 'string', 'the uid is the correct type');
+
+            tests += 2;
+            wrapUp();
+
+            localProxy.removeListener('register', fn);
+        });
+
+        localToy = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
+
+        localToy.on('register', function fnreg(msgUid) {
+            t.true(typeof msgUid === 'string', 'the uid is the correct type');
+            uid2 = msgUid;
+
+            tests += 1;
+            wrapUp();
+
+            localToy.removeListener('register', fnreg);
+        });
+
+        function wrapUp() {
+            if (tests === 3) {
+                t.equal(uid1, uid2, 'The UIDs are the same');
+                t.end();
+            }
         }
-    }
-
-});
-
-test('Test we can ping the proxy and get a result', function(t) {
-
-    t.plan(4);
-
-    controller1.ping(function (time) {
-        t.true(typeof time === 'number', 'controller: ping time is a number');
-        t.true(time >= 0, 'controller: ping time is in the past');
-    });
-
-    toy1.ping(function (time) {
-        t.true(typeof time === 'number', 'toy: ping time is a number');
-        t.true(time >= 0, 'toy: ping time is in the past');
-    });
-
-});
-
-test('Test controller-1 can send commands to proxy', function(t) {
-
-    t.plan(2);
-
-    var cmdTxt = 'simon say\'s do this';
-
-    proxy.on('command', function fn (cmdObj) {
-        t.equal(cmdObj.type, 'command', 'message is correct type');
-        t.equal(cmdObj.data, cmdTxt, 'command was correct');
-        t.end();
-
-        proxy.removeListener('command', fn);
 
     });
 
-    controller1.command(cmdTxt);
+    test('Test localController can send commands to localProxy', function(t) {
 
-});
+        t.plan(2);
 
-test('Test controller-1 can send commands to toy-1 (text)', function(t) {
+        var cmdTxt = 'simon say\'s do this';
 
-    t.plan(1);
-
-    var cmdTxt = 'simon say\'s do this';
-
-    toy1.on('command', function fn (respCmdTxt) {
-
-        // Slow things down just a bit
-        setTimeout(function() {
-            t.equal(respCmdTxt, cmdTxt, 'command was correct');
+        localProxy.on('command', function fn (cmdObj) {
+            t.equal(cmdObj.type, 'command', 'message is correct type');
+            t.equal(cmdObj.data, cmdTxt, 'command was correct');
             t.end();
-        }, 50);
 
-        toy1.removeListener('command', fn);
+            localProxy.removeListener('command', fn);
+
+        });
+
+        localController.command(cmdTxt);
+
     });
 
-    controller1.command(cmdTxt);
+}  // end of isLocalProxy
 
-});
 
-test('Test controller-1 can send commands to toy-1 (object)', function(t) {
+var options = { channel: channel1, log: console.log, keepalive: 0, udp4: UDP, tcp: TCP, proxyUrl: PROXY_ADDRESS };
+var controller = wrc.createController(options);
+var toy = wrc.createToy(options);
 
-    t.plan(1);
+// Wait until both devices are registered
+var countRegs = 0;
+controller.on('register', regCounter);
+toy.on('register', regCounter);
+function regCounter () {
+    countRegs += 1;
+    if (countRegs === 2) {
+        startRemainingTests();
+    }
+}
 
-    var cmdObj = {
-        a: 'simon say\'s do this',
-        b: 'c'
-    };
+function startRemainingTests () {
 
-    toy1.on('command', function fn (respCmdObj) {
-        t.deepEqual(respCmdObj, cmdObj, 'command was correct');
-        t.end();
+    test('Test we can ping the localProxy and get a result', function(t) {
 
-        toy1.removeListener('command', fn);
+        t.plan(4);
+
+        controller.ping(function (time) {
+            t.true(typeof time === 'number', 'controller: ping time is a number');
+            t.true(time >= 0, 'controller: ping time is in the past');
+        });
+
+        toy.ping(function (time) {
+            t.true(typeof time === 'number', 'toy: ping time is a number');
+            t.true(time >= 0, 'toy: ping time is in the past');
+        });
+
     });
 
-    controller1.command(cmdObj);
 
-});
+    test('Test controller-1 can send commands to toy-1 (text)', function(t) {
 
+        t.plan(1);
 
-test('Test toy-1 can send status updates to controller-1 (text)', function(t) {
+        var cmdTxt = 'simon say\'s do this';
 
-    t.plan(1);
+        toy.on('command', function fn (respCmdTxt) {
 
-    var statusTxt = 'Hi, I am here';
+            // Slow things down just a bit
+            setTimeout(function() {
+                t.equal(respCmdTxt, cmdTxt, 'command received is correct');
+                t.end();
+            }, 50);
 
-    controller1.on('status', function fn (respStatusTxt) {
-        t.equal(respStatusTxt, statusTxt, 'command was correct');
-        t.end();
+            toy.removeListener('command', fn);
+        });
 
-        controller1.removeListener('status', fn);
+        controller.command(cmdTxt);
+
     });
 
-    toy1.status(statusTxt);
+    test('Test controller-1 can send commands to toy-1 (object)', function(t) {
 
-});
+        t.plan(1);
 
-test.onFinish(function () {
+        var cmdObj = {
+            a: 'simon say\'s do this',
+            b: 'c'
+        };
 
-    setTimeout(function () {
-        proxy.close();
-        toy1.close();
-        controller1.close();
+        toy.on('command', function fn (respCmdObj) {
+            t.deepEqual(respCmdObj, cmdObj, 'command was correct');
+            t.end();
 
-    }, 100);
+            toy.removeListener('command', fn);
+        });
 
-});
+        controller.command(cmdObj);
+
+    });
+
+
+    test('Test toy-1 can send status updates to controller-1 (text)', function(t) {
+
+        t.plan(1);
+
+        var statusTxt = 'Hi, I am here';
+
+        controller.on('status', function fn (respStatusTxt) {
+            t.equal(respStatusTxt, statusTxt, 'command was correct');
+            t.end();
+
+            controller.removeListener('status', fn);
+        });
+
+        toy.status(statusTxt);
+
+    });
+
+    test.onFinish(function () {
+
+        setTimeout(function () {
+
+            if (isLocalProxy) {
+                localProxy.close();
+                localToy.close();
+                localController.close();
+            }
+
+            toy.close();
+            controller.close();
+
+        }, 250);
+
+    });
+
+}

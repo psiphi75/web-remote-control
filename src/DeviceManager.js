@@ -88,6 +88,42 @@ DeviceManager.prototype.remove = function(uid) {
 };
 
 /**
+ * Remove a device from the device manager.
+ * @param  {string} uid The UID
+ * @return {boolean}     true if successful, otherwise false.
+ */
+DeviceManager.prototype.removeBySocketId = function(socketId) {
+
+    var uid = this.findBySocketId(socketId);
+
+    if (typeof this.list[uid] === 'undefined') {
+        return false;
+    }
+
+    try {
+        delete this.list[uid];
+    } catch (ex) {
+        return false;
+    }
+    return true;
+};
+
+
+DeviceManager.prototype.findBySocketId = function(socketId) {
+
+    var self = this;
+    var foundUid = null;
+    Object.keys(this.list).forEach( function(uid) {
+        var dev = self.list[uid];
+        if (dev.socket.socketId === socketId) {
+            foundUid = uid;
+        }
+    });
+    return foundUid;
+};
+
+
+/**
  * Get a device from a UID.
  * @param  {string} uid The UID.
  * @return {object}     The device details.

@@ -27,7 +27,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var DevMan = require('./DeviceManager');
-var ConnectionManager = require('./ConnectionManager');
+var ServerConnection = require('./ServerConnection');
 
 /**
  * This is the proxy server.  It is the "man in the middle".  Devices (toys and
@@ -40,14 +40,18 @@ function Prox(settings) {
     this.log = settings.log;
 
     this.devices = new DevMan();
-    this.server = new ConnectionManager(settings);
+    this.server = new ServerConnection(settings);
 
-    this.server.on('listening', function (localPort, localAddress) {
-        self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
+    this.server.on('listening', function (localPort, localAddress, protocol) {
+        self.log('Web-Remote-Control Proxy Server listening to ' + protocol + ' on ' + localAddress + ':' + localPort);
     });
 
     this.server.on('error', function(err) {
         console.error('Proxy: There was an error: ', err);
+    });
+
+    this.server.on('socket-close', function (socketId) {
+        self.devices.removeBySocketId(socketId);
     });
 
     this.server.on('register', this.registerDevice.bind(this));

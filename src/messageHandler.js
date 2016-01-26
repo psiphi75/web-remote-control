@@ -35,6 +35,11 @@
  */
 exports.parseIncomingMessage = function(message) {
 
+    if (message.length === 0) {
+        // Empty packet arrived, this happens when remote closes connection
+        return null;
+    }
+
     var msgObj;
 
     try {

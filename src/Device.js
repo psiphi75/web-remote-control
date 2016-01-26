@@ -27,7 +27,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var PingManager = require('./PingManager');
-var UniSocket = require('./UniSocket');
+var ClientConnection = require('./ClientConnection');
 
 var NET_TIMEOUT = 5 * 1000;
 
@@ -46,8 +46,8 @@ function Device(settings) {
         throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
     }
 
-    this.pingManager = new PingManager(this.keepalive);
-    this.connection = new UniSocket();
+    this.pingManager = new PingManager();
+    this.connection = new ClientConnection();
     var protocol = settings.udp4 ? 'udp4' : 'tcp';
     this.connection.createProxySocket(protocol, settings.proxyUrl, settings.port);
 
@@ -58,30 +58,46 @@ function Device(settings) {
     this.mySeqNum = 1;
 
     if (this.keepalive > 0) {
-        this.timeoutHandle = setInterval(this.ping.bind(this), this.keepalive * 1000);
+        this.timeoutHandle = setInterval(this.ping.bind(this), this.keepalive);
     }
 
     var self = this;
     this.connection.on('error', function(err) {
         self.emit('error', 'Device: There was an error: ' + err);
     });
-    this.connection.on('register', reEmit);
-    this.connection.on('status', reEmit);
-    this.connection.on('command', reEmit);
+    this.connection.on('register', handleRegisterResponse.bind(this));
+    this.connection.on('status', reEmit.bind(this));
+    this.connection.on('command', reEmit.bind(this));
     this.connection.on('ping', function fn(msgObj) {
         var pingTime = (new Date()).getTime() - parseInt(msgObj.data);
         self.pingManager.handleIncomingPing(msgObj.seq, pingTime);
     });
 
-    function reEmit(responseMsgObj) {
-        self.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
-    }
-
     // Register the device, this announces us.
     this.register();
 
+    function reEmit(responseMsgObj) {
+        this.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
+    }
+
+    function handleRegisterResponse(responseMsgObj) {
+
+        if (!this.uid) {
+            this.log('Registered');
+
+            if (typeof responseMsgObj.uid !== 'string') {
+                throw new Error('unable to initailise');
+            }
+            this.uid = responseMsgObj.uid;
+        }
+
+        clearTimeout(this.recheckRegisteryTimeout);
+        reEmit.bind(this)(responseMsgObj);
+    }
+
     // Make ourself an emiter
     EventEmitter.call(this);
+
 }
 util.inherits(Device, EventEmitter);
 
@@ -99,34 +115,14 @@ Device.prototype.register = function () {
         channel: this.channel
     });
 
-    var self = this;
-    this.on('register', receiveRegisterResponse);
-    function receiveRegisterResponse(uid) {
-
-        if (!self.uid) {
-            self.log('Registered');
-
-            if (typeof uid !== 'string') {
-                throw new Error('unable to initailise');
-            }
-            self.uid = uid;
-        }
-
-        cleanUp();
-    }
-
     // Check the registery again in RECHECK_REGISTER seconds if we do not get a response
-    var recheckRegisteryTimeout = setTimeout(function checkRegistery() {
+    var self = this;
+    this.recheckRegisteryTimeout = setTimeout(function checkRegistery() {
 
         self.log(self.deviceType + ': unable to register with proxy, trying again.');
         self.register();
 
     }, NET_TIMEOUT);
-
-    function cleanUp() {
-        self.removeListener('register', receiveRegisterResponse);
-        clearTimeout(recheckRegisteryTimeout);
-    }
 
 };
 

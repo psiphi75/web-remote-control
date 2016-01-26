@@ -33,7 +33,7 @@ var messageHandler = require('./messageHandler');
  * the protocol.
  * @param {object} options (optional)
  */
-function ConnectionManager (options) {
+function ServerConnection (options) {
 
     this.log = options.log;
     this.port = options.port;
@@ -49,7 +49,7 @@ function ConnectionManager (options) {
     EventEmitter.call(this);
 
 }
-util.inherits(ConnectionManager, EventEmitter);
+util.inherits(ServerConnection, EventEmitter);
 
 
 /**
@@ -57,8 +57,7 @@ util.inherits(ConnectionManager, EventEmitter);
  * @param  {number} port    The port number to listen on.
  * @param  {string} address (optional) The IP address to listen on.
  */
-ConnectionManager.prototype.listenUDP4 = function() {
-
+ServerConnection.prototype.listenUDP4 = function() {
 
     var dgram = require('dgram');
     this.udp4 = dgram.createSocket('udp4');
@@ -68,18 +67,18 @@ ConnectionManager.prototype.listenUDP4 = function() {
     this.udp4.on('message', function (message, remote) {
         var socketInfo = {
             protocol: 'udp4',
-            address: remote.proxyUrl,
-            port: remote.port
+            address: remote.address,
+            port: remote.port,
+            socketId: remote.address + ':' + remote.port
         };
         handleMessage.bind(self)(message, socketInfo);
     });
 
     this.udp4.on('listening', function () {
-        self.emit('listening', self.port, self.proxyUrl);
+        self.emit('listening', self.port, self.proxyUrl, 'udp4');
     });
     this.udp4.bind({
-        port: self.port,
-        address: self.proxyUrl
+        port: self.port
     });
 };
 
@@ -99,6 +98,11 @@ function handleMessage(message, socketInfo) {
         return;
     }
 
+    // Empty packet arrived, this happens when remote closes connection
+    if (msgObj === null) {
+        return;
+    }
+
     msgObj.socket = socketInfo;
     this.emit(msgObj.type, msgObj);
 
@@ -106,7 +110,7 @@ function handleMessage(message, socketInfo) {
 }
 
 
-ConnectionManager.prototype.listenTCP = function() {
+ServerConnection.prototype.listenTCP = function() {
 
     var net = require('net');
     var split = require('split');
@@ -116,19 +120,23 @@ ConnectionManager.prototype.listenTCP = function() {
             protocol: 'tcp',
             address: socket.remoteAddress,
             port: socket.remotePort,
+            socketId: socket.remoteAddress + ':' + socket.remotePort,
             tcpSocket: socket
         };
         var stream = socket.pipe(split('\n'));
-        stream.on('data', function(message){
+        stream.on('data', function(message) {
             handleMessage.bind(self)(message, socketInfo);
+        });
+        stream.on('close', function() {
+            self.emit('socket-close', socketInfo.socketId);
         });
 
     });
     this.tcp.on('error', handleError);
     this.tcp.on('listening', function () {
-        self.emit('listening', self.port, self.proxyUrl);
+        self.emit('listening', self.port, self.proxyUrl, 'tcp');
     });
-    this.tcp.listen(self.port, self.proxyUrl);
+    this.tcp.listen(self.port);
 
 };
 
@@ -136,7 +144,7 @@ ConnectionManager.prototype.listenTCP = function() {
 /**
  * Close all connections.
  */
-ConnectionManager.prototype.closeAll = function() {
+ServerConnection.prototype.closeAll = function() {
 
     if (this.udp4) {
         this.udp4.close();
@@ -154,7 +162,7 @@ ConnectionManager.prototype.closeAll = function() {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-ConnectionManager.prototype.send = function(msgObj) {
+ServerConnection.prototype.send = function(msgObj) {
 
     var socketInfo = msgObj.socket;
     var msgComp = messageHandler.packOutgoingMessage(msgObj);
@@ -165,10 +173,14 @@ ConnectionManager.prototype.send = function(msgObj) {
     }
 
     if (socketInfo.protocol === 'tcp') {
-        socketInfo.tcpSocket.write(msgComp);
+        try {
+            socketInfo.tcpSocket.write(msgComp);
+        } catch (ex) {
+            console.error('ServerConnection.send():error: ', ex);
+        }
         return;
     }
 
 };
 
-module.exports = ConnectionManager;
+module.exports = ServerConnection;

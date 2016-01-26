@@ -20,7 +20,6 @@ The proxy is required to relay `command`s from the controller to device. It also
 The default port is 33330.
 
 ```javascript
-
 var wrc = require('web-remote-control');
 var proxy = wrc.createProxy();
 ```
@@ -30,11 +29,15 @@ var proxy = wrc.createProxy();
 The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
 
 ```javascript
-
 var wrc = require('web-remote-control');
 var controller = wrc.createController({ proxyUrl: 'your proxy url' });
 
-controller.command('Turn Left');
+// Should wait until we are registered before doing anything else
+controller.on('register', function() {
+
+    controller.command('Turn Left');
+
+});
 
 controller.on('status', function (status) {
     console.log('I got a status message: ', status);
@@ -46,17 +49,21 @@ controller.on('status', function (status) {
 The device is what is being controlled.  It accepts `command`s, `message`s, and `ping` responses.  It can send `ping`s and `message`s.
 
 ```javascript
-
 var wrc = require('web-remote-control');
 var toy = wrc.createToy({ proxyUrl: 'your proxy url'});
 
-// Ping the proxy and get the response time (in milliseconds)
-toy.ping(function (time) {
-    console.log(time);
-});
+// Should wait until we are registered before doing anything else
+toy.on('register', function() {
 
-// Send a status update to the controller
-toy.status('Hi, this is a message to the controller.');
+    // Ping the proxy and get the response time (in milliseconds)
+    toy.ping(function (time) {
+        console.log(time);
+    });
+
+    // Send a status update to the controller
+    toy.status('Hi, this is a message to the controller.');
+
+});
 
 // Listens to commands from the controller
 toy.on('command', function(cmd) {
@@ -122,6 +129,7 @@ Below are known issues, feel free to fix them.
 - **Work In Progress**: The web component needs creating and documented.
 - Out of order packets are not handled, we should only use the most recent command packet.
 - Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.  However, when I send packets with smaz they don't decompress properly. Although the same data compresses and decompresses fine when it is not transmitted.
+- **Fixed**: TCP functionality missing.
 - **Fixed**: If we are not registered, try again in 30 seconds.
 - **Fixed**: Each ping creates a new listener.
 

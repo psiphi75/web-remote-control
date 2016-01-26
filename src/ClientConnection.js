@@ -32,15 +32,15 @@ var util = require('util');
  * The connection manager will handle the TCP and UDP transport.  As well as
  * the protocol.
  */
-function UniSocket() {
+function ClientConnection() {
     EventEmitter.call(this);
 }
-util.inherits(UniSocket, EventEmitter);
+util.inherits(ClientConnection, EventEmitter);
 
 /**
  * Set up the UDP listener.
  */
-UniSocket.prototype.createProxySocket = function (protocol, address, port) {
+ClientConnection.prototype.createProxySocket = function (protocol, address, port) {
 
     this.remoteAddress = address;
     this.remotePort = port;
@@ -62,7 +62,6 @@ UniSocket.prototype.createProxySocket = function (protocol, address, port) {
 
             this.tcp = new net.Socket();
             this.tcp.connect(this.remotePort, this.remoteAddress);
-            // this.tcp.setEncoding('uint8');
             this.tcp.on('error', handleError.bind(this));
             this.tcp.on('data', handleMessage.bind(this));
             this.tcp.on('close', function() {
@@ -90,9 +89,12 @@ function handleMessage(message) {
         return;
     }
 
-    this.emit(msgObj.type, msgObj);
+    // Empty packet arrived, this happens when remote closes connection
+    if (msgObj === null) {
+        return;
+    }
 
-    // console.log(new Date(), remote.address + ':' + remote.remotePort, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
+    this.emit(msgObj.type, msgObj);
 
 }
 
@@ -100,7 +102,7 @@ function handleMessage(message) {
 /**
  * Close all connections.
  */
-UniSocket.prototype.closeAll = function() {
+ClientConnection.prototype.closeAll = function() {
 
     if (this.udp4) {
         this.udp4.close();
@@ -119,7 +121,7 @@ UniSocket.prototype.closeAll = function() {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-UniSocket.prototype.send = function(msgObj) {
+ClientConnection.prototype.send = function(msgObj) {
 
     var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
 
@@ -137,4 +139,4 @@ UniSocket.prototype.send = function(msgObj) {
 
 };
 
-module.exports = UniSocket;
+module.exports = ClientConnection;

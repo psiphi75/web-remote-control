@@ -84,7 +84,7 @@ function init(type) {
         };
 
         if (typeof params.log !== 'function') {
-            params.log = require('./defaults').log;
+            params.log = defaults.log;
         }
 
         var obj;

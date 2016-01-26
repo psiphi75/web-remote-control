@@ -25,7 +25,7 @@
  * PingManager ensures all pings are matched to a response.  Lost pings are
  * forgotten over time.
  */
-function PingManager(timeout) {
+function PingManager() {
     this.pingList = {};
     this.MAX_PING_WAIT_TIME = 60 * 1000;
 }
@@ -40,9 +40,6 @@ PingManager.prototype.add = function(pingId, callback) {
     if (typeof pingId !== 'number') {
         throw new Error('PingManager.add(): pingId must be a number.');
     }
-    // if (typeof callback !== 'function') {
-    //     throw new Error('PingManager.add(): callback must be supplied and be a function.');
-    // }
     if (this.pingList[pingId]) {
         throw new Error('PingManager.add(): pingId has already been supplied.');
     }
@@ -55,6 +52,7 @@ PingManager.prototype.add = function(pingId, callback) {
 
         // and delete the stale ping
         self.handleIncomingPing(pingId, -1);
+
     }, this.MAX_PING_WAIT_TIME);
 
     this.pingList[pingId] = ping;
