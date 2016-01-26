@@ -23,15 +23,22 @@
 
 'use strict';
 
+var UDP = true;
+var TCP = false;
+if (process.env.PROTOCOL && process.env.PROTOCOL.toUpperCase() === 'TCP') {
+    UDP = false;
+    TCP = true;
+}
+
 var test = require('tape');
 
 var messageHandler = require('../src/messageHandler');
 var wrc = require('../index');
-var proxy = wrc.createProxy({log: function(){} });
+var proxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP });
 
 var channel1 = 'channel-1';
 var toy1;
-var controller1 = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0 });
+var controller1 = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 
 
 test('Compression works', function(t) {
@@ -63,7 +70,7 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
         proxy.removeListener('register', fn);
     });
 
-    toy1 = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0 });
+    toy1 = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 
     toy1.on('register', function fnreg(msgUid) {
         t.true(typeof msgUid === 'string', 'the uid is the correct type');

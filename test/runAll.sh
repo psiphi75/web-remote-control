@@ -8,7 +8,10 @@ node testDevMan.js
 echo "PingManager"
 node testPingMan.js
 
-echo "Web-Remote-Control"
+echo "Web-Remote-Control - UDP"
 node testWRC.js
+
+echo "Web-Remote-Control - TCP"
+PROTOCOL=TCP node testWRC.js
 
 cd ..

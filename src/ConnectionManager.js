@@ -26,8 +26,6 @@
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
-// UDP transport layer
-var dgram = require('dgram');
 var messageHandler = require('./messageHandler');
 
 /**
@@ -38,15 +36,16 @@ var messageHandler = require('./messageHandler');
 function ConnectionManager (options) {
 
     this.log = options.log;
+    this.port = options.port;
+    this.proxyUrl = options.proxyUrl;
 
     if (!(options.udp4 === false)) {
-        this.setupUDP();
+        this.listenUDP4();
     }
 
-    // if (!(options.tcp === false)) {
-    //     // console.error('tcp not yet ready');
-    //     this.setupTCP();
-    // }
+    if (!(options.tcp === false)) {
+        this.listenTCP();
+    }
     EventEmitter.call(this);
 
 }
@@ -54,119 +53,84 @@ util.inherits(ConnectionManager, EventEmitter);
 
 
 /**
- * Set up the UDP listener.
+ * Start the UDP server on the given port and address (optional)
+ * @param  {number} port    The port number to listen on.
+ * @param  {string} address (optional) The IP address to listen on.
  */
-ConnectionManager.prototype.setupUDP = function () {
+ConnectionManager.prototype.listenUDP4 = function() {
 
-    var self = this;
+
+    var dgram = require('dgram');
     this.udp4 = dgram.createSocket('udp4');
     this.udp4.on('error', handleError);
+
+    var self = this;
     this.udp4.on('message', function (message, remote) {
         var socketInfo = {
             protocol: 'udp4',
-            address: remote.address,
+            address: remote.proxyUrl,
             port: remote.port
         };
         handleMessage.bind(self)(message, socketInfo);
     });
 
-    function handleError(err) {
-        console.log(err);
-        this.emit('error', err);
-    }
-
-    function handleMessage(message, socketInfo) {
-
-        var msgObj;
-        try {
-            msgObj = messageHandler.parseIncomingMessage(message);
-        } catch (ex) {
-            this.emit('error', ex);
-            return;
-        }
-
-        msgObj.socket = socketInfo;
-        this.emit(msgObj.type, msgObj);
-
-        this.log(new Date(), socketInfo.address + ':' + socketInfo.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
-    }
-
-};
-
-
-/**
- * Start the UDP server on the given port and address (optional)
- * @param  {number} port    The port number to listen on.
- * @param  {string} address (optional) The IP address to listen on.
- */
-ConnectionManager.prototype.listenUDP4 = function(port, address) {
-    var self = this;
     this.udp4.on('listening', function () {
-        self.emit('listening', port, address);
+        self.emit('listening', self.port, self.proxyUrl);
     });
     this.udp4.bind({
-        port: port,
-        address: address
+        port: self.port,
+        address: self.proxyUrl
     });
 };
 
 
-// ConnectionManager.prototype.setupTCP = function () {
-//
-//     var self = this;
-//     this.udp4 = dgram.createSocket('udp4');
-//
-//     this.udp4.on('error', handleError);
-//     this.udp4.on('message', function (message, remote) {
-//         remote.protocol = 'udp4';
-//         handleMessage.bind(self)(message, remote);
-//     });
-//
-//     function handleError(err) {
-//         console.log(err);
-//         this.emit('error', err);
-//     }
-//
-//     function handleMessage(message, remote) {
-//
-//         var msgObj;
-//         try {
-//             msgObj = parseMessage(message, remote);
-//         } catch (ex) {
-//             this.emit('error', ex);
-//             return;
-//         }
-//
-//         this.emit(msgObj.type, msgObj, remote);
-//
-//         this.log(new Date(), remote.address + ':' + remote.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
-//     }
-// };
-//
-// ConnectionManager.prototype.listenTCP = function(port, address) {
-//
-//     var net = require('net');
-//
-//     this.tcp = net.createServer(function(socket) {
-//         socket.on('data', function (data) {
-//           console.log(typeof data, data);
-//           socket.write(data);
-//         });
-//     });
-//     this.tcp.on('listening', function () {
-//         self.emit('listening', port, address);
-//     });
-//     this.tcp.listen(port, address);
-//
-//     // var self = this;
-//     // this.udp4.on('listening', function () {
-//     //     self.emit('listening', port, address);
-//     // });
-//     // this.udp4.bind({
-//     //     port: port,
-//     //     address: address
-//     // });
-// };
+function handleError(err) {
+    console.log(err);
+    this.emit('error', err);
+}
+
+function handleMessage(message, socketInfo) {
+
+    var msgObj;
+    try {
+        msgObj = messageHandler.parseIncomingMessage(message);
+    } catch (ex) {
+        this.emit('error', ex);
+        return;
+    }
+
+    msgObj.socket = socketInfo;
+    this.emit(msgObj.type, msgObj);
+
+    this.log(new Date(), socketInfo.address + ':' + socketInfo.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
+}
+
+
+ConnectionManager.prototype.listenTCP = function() {
+
+    var net = require('net');
+    var split = require('split');
+    var self = this;
+    this.tcp = net.createServer(function(socket) {
+        var socketInfo = {
+            protocol: 'tcp',
+            address: socket.remoteAddress,
+            port: socket.remotePort,
+            tcpSocket: socket
+        };
+        var stream = socket.pipe(split('\n'));
+        stream.on('data', function(message){
+            handleMessage.bind(self)(message, socketInfo);
+        });
+
+    });
+    this.tcp.on('error', handleError);
+    this.tcp.on('listening', function () {
+        self.emit('listening', self.port, self.proxyUrl);
+    });
+    this.tcp.listen(self.port, self.proxyUrl);
+
+};
 
 
 /**
@@ -178,9 +142,9 @@ ConnectionManager.prototype.closeAll = function() {
         this.udp4.close();
     }
 
-    // if (this.tcp) {
-    //     this.tcp.close();
-    // }
+    if (this.tcp) {
+        this.tcp.close();
+    }
 
 };
 
@@ -200,10 +164,10 @@ ConnectionManager.prototype.send = function(msgObj) {
         return;
     }
 
-    // if (protocol === 'tcp') {
-    //     // this.tcp.send(msgComp, 0, msgComp.length, port, address, handleError);
-    //     return;
-    // }
+    if (socketInfo.protocol === 'tcp') {
+        socketInfo.tcpSocket.write(msgComp);
+        return;
+    }
 
 };
 

@@ -109,6 +109,13 @@ var compress = function(data) {
     // return compressedData;
 
     var str = JSON.stringify(data);
+
+    // We use a newline to seperate out TCP messages
+    if (str.indexOf('\n') >= 0) {
+        throw new Error('Messages must not have new line characters.');
+    }
+    str = str + '\n';
+
     var buf = new Buffer(str);
     return buf;
 

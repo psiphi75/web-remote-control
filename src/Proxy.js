@@ -41,7 +41,6 @@ function Prox(settings) {
 
     this.devices = new DevMan();
     this.server = new ConnectionManager(settings);
-    this.server.listenUDP4(settings.port);
 
     this.server.on('listening', function (localPort, localAddress) {
         self.log('Web-Remote-Control Proxy Server listening on ' + localAddress + ':' + localPort);
@@ -82,11 +81,11 @@ Prox.prototype.registerDevice = function(msgObj) {
         return;
     }
 
-    var type = msgObj.data.type;
+    var deviceType = msgObj.data.deviceType;
     var channel = msgObj.data.channel;
 
-    if (!this.devices.validDeviceType(type)) {
-        console.error('Invalid device type: ', type);
+    if (!this.devices.validDeviceType(deviceType)) {
+        console.error('Invalid device type: ', deviceType);
         return;
     }
 
@@ -95,7 +94,7 @@ Prox.prototype.registerDevice = function(msgObj) {
         return;
     }
 
-    var uid = this.devices.add(type, channel, msgObj.socket);
+    var uid = this.devices.add(deviceType, channel, msgObj.socket);
     msgObj.uid = uid;
     msgObj.data = uid;
 

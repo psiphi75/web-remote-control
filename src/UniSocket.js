@@ -81,7 +81,7 @@ function handleError(err) {
 }
 
 function handleMessage(message) {
-    // console.log(typeof message, message.toString())
+
     var msgObj;
     try {
         msgObj = messageHandler.parseIncomingMessage(message);
@@ -96,19 +96,6 @@ function handleMessage(message) {
 
 }
 
-// function handleMessageTCP(message) {
-//     handleMessage.bind(this)(message);
-// }
-//
-// function handleMessageUDP(message, remote) {
-//
-//     // This gets the IP remote address, which is faster to send packets, than a domain name.
-//     this.remoteAddress = remote.address;
-//
-//     handleMessage.bind(this)(message);
-//
-// }
-
 
 /**
  * Close all connections.
@@ -120,10 +107,11 @@ UniSocket.prototype.closeAll = function() {
     }
 
     if (this.tcp) {
-        self.tcp.destroy();
+        this.tcp.destroy();
     }
 
 };
+
 
 /**
  * Sends a message to the remote device.

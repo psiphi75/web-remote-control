@@ -74,8 +74,6 @@ function Device(settings) {
     });
 
     function reEmit(responseMsgObj) {
-        // Override global 'ip' variable, this caches our IP address which is faster than url.
-        // self.proxyIp = remote.address;
         self.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
     }
 
@@ -97,7 +95,7 @@ util.inherits(Device, EventEmitter);
 Device.prototype.register = function () {
 
     this.send('register', {
-        type: this.deviceType,
+        deviceType: this.deviceType,
         channel: this.channel
     });
 
