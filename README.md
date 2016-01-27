@@ -6,6 +6,11 @@ Three components are provided:
 - Controller - this can be via web or node.js.
 - Toy - the device being controlled (this should run node.js).
 
+Connection methods are:
+- TCP - between node.js client and proxy.
+- UDP - between node.js client and proxy.
+- Socket.io - between Browser client and proxy.
+
 ## Install
 
 ```bash
@@ -24,27 +29,7 @@ var wrc = require('web-remote-control');
 var proxy = wrc.createProxy();
 ```
 
-**The Controller:**
-
-The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
-
-```javascript
-var wrc = require('web-remote-control');
-var controller = wrc.createController({ proxyUrl: 'your proxy url' });
-
-// Should wait until we are registered before doing anything else
-controller.on('register', function() {
-
-    controller.command('Turn Left');
-
-});
-
-controller.on('status', function (status) {
-    console.log('I got a status message: ', status);
-});
-```
-
-**The Device:**
+**The Device (node.js):**
 
 The device is what is being controlled.  It accepts `command`s, `message`s, and `ping` responses.  It can send `ping`s and `message`s.
 
@@ -68,6 +53,55 @@ toy.on('register', function() {
 // Listens to commands from the controller
 toy.on('command', function(cmd) {
     console.log('The controller sent me this command: ', cmd);
+});
+```
+
+
+**The Controller (browser):**
+
+See ./www/public/index.html for the below example in action.
+
+_Note: you need to run the `build.sh` script to build the browser based JavaScript code.  This relies on a globally installed browserify runtime._
+
+```html
+<script src="./web-remote-control.js"></script>
+<script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
+<script>
+    var Device = require('Device');
+    var controller = new Device({ proxyUrl: 'localhost', deviceType:'controller' }, require('WebClientConnection'));
+
+    controller.connection.socket.on('connect', function() {
+        controller.on('register', function() {
+            controller.ping(function(t) {
+                console.log('pinged: ', t);
+            })
+            controller.command('do this!!!');
+            controller.on('status', function(status) {
+                console.log('Controller: Toy said: ', status);
+            })
+        });
+    });
+</script>
+```
+
+
+**The Controller (node.js):**
+
+The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
+
+```javascript
+var wrc = require('web-remote-control');
+var controller = wrc.createController({ proxyUrl: 'your proxy url' });
+
+// Should wait until we are registered before doing anything else
+controller.on('register', function() {
+
+    controller.command('Turn Left');
+
+});
+
+controller.on('status', function (status) {
+    console.log('I got a status message: ', status);
 });
 ```
 
@@ -126,7 +160,7 @@ var proxy = wrc.createProxy(settings);
 
 Below are known issues, feel free to fix them.
 
-- **Work In Progress**: The web component needs creating and documented.
+- **Done**: The web component needs creating and documented.
 - Out of order packets are not handled, we should only use the most recent command packet.
 - Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.  However, when I send packets with smaz they don't decompress properly. Although the same data compresses and decompresses fine when it is not transmitted.
 - **Fixed**: TCP functionality missing.
