@@ -32,65 +32,38 @@ var util = require('util');
  * The connection manager will handle the TCP and UDP transport.  As well as
  * the protocol.
  */
-function ClientConnection(options) {
+function WebClientConnection(options) {
 
-    if (options.udp4 === true && options.tcp === true) {
-        throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
-    }
-    if (options.udp4 === false && options.tcp === false) {
-        throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
-    }
-
-    if (options.udp4) {
-        this.createProxySocket('udp4', options.proxyUrl, options.port);
-    } else {
-        this.createProxySocket('tcp', options.proxyUrl, options.port);
-    }
+    this.createProxySocket('http://' + options.proxyUrl, 33331);
 
     EventEmitter.call(this);
 }
-util.inherits(ClientConnection, EventEmitter);
+util.inherits(WebClientConnection, EventEmitter);
 
 /**
  * Set up the UDP listener.
  */
-ClientConnection.prototype.createProxySocket = function (protocol, address, port) {
+WebClientConnection.prototype.createProxySocket = function (address, port) {
 
     this.remoteAddress = address;
     this.remotePort = port;
+
+    this.socket = window.io(address + ':' + port);
+    this.socket.on('connect', function() {
+        console.log('connected');
+    });
     var self = this;
-
-    switch (protocol) {
-        case 'udp4':
-            var dgram = require('dgram');
-            this.udp4 = dgram.createSocket('udp4');
-            this.udp4.on('error', handleError.bind(this));
-            this.udp4.on('message', function (message) {
-                handleMessage.bind(self)(message);
-            });
-            break;
-
-        case 'tcp':
-            var net = require('net');
-
-            this.tcp = new net.Socket();
-            this.tcp.connect(this.remotePort, this.remoteAddress);
-            this.tcp.on('error', handleError.bind(this));
-            this.tcp.on('data', handleMessage.bind(this));
-            this.tcp.on('close', function() {
-                delete self.tcp;
-            });
-            break;
-
-        default:
-            throw new Error('invalid protocol: ', protocol);
-    }
+    this.socket.on('event', function(message) {
+        if (message && typeof message.byteLength === 'number') {
+            message = String.fromCharCode.apply(null, new Uint8Array(message));
+        }
+        handleMessage.bind(self)(message);
+        // console.log(message)
+        // console.log(messageHandler.parseIncomingMessage(ab2str(message)))
+    });
+    this.socket.on('disconnect', function() {});
 };
 
-function handleError(err) {
-    console.log(err);
-    this.emit('error', err);
-}
 
 function handleMessage(message) {
 
@@ -102,30 +75,9 @@ function handleMessage(message) {
         return;
     }
 
-    // Empty packet arrived, this happens when remote closes connection
-    if (msgObj === null) {
-        return;
-    }
-
     this.emit(msgObj.type, msgObj);
 
 }
-
-
-/**
- * Close all connections.
- */
-ClientConnection.prototype.closeAll = function() {
-
-    if (this.udp4) {
-        this.udp4.close();
-    }
-
-    if (this.tcp) {
-        this.tcp.destroy();
-    }
-
-};
 
 
 /**
@@ -134,22 +86,16 @@ ClientConnection.prototype.closeAll = function() {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-ClientConnection.prototype.send = function(msgObj) {
+WebClientConnection.prototype.send = function(msgObj) {
 
     var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
 
-    if (this.udp4) {
-        this.udp4.send(sendBuffer, 0, sendBuffer.length, this.remotePort, this.remoteAddress);
-        return;
+    try {
+        this.socket.emit('event', sendBuffer);
+    } catch (ex) {
+        console.error('WebClientConnection.send(): ', ex);
     }
-
-    if (this.tcp) {
-        this.tcp.write(sendBuffer);
-        return;
-    }
-
-    throw new Error('Trying to send a message when a protocol has not been configured.');
 
 };
 
-module.exports = ClientConnection;
+module.exports = WebClientConnection;

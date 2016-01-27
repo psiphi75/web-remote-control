@@ -80,6 +80,7 @@ function init(type) {
             log: params.log || defaults.log,
             tcp: parseFalsey(params.tcp, defaults.tcp),
             udp4: parseFalsey(params.udp4, defaults.udp4),
+            socketio: parseFalsey(params.socketio, defaults.socketio),
             deviceType: type
         };
 
@@ -87,6 +88,7 @@ function init(type) {
             params.log = defaults.log;
         }
 
+        var ClientConnection;
         var obj;
         switch (type) {
             case 'proxy':
@@ -94,10 +96,12 @@ function init(type) {
                 return new obj(settings);
             case 'toy':
                 obj = require('./src/Device');
-                return new obj(settings);
+                ClientConnection = require('./src/ClientConnection');
+                return new obj(settings, ClientConnection);
             case 'controller':
                 obj = require('./src/Device');
-                return new obj(settings);
+                ClientConnection = require('./src/ClientConnection');
+                return new obj(settings, ClientConnection);
             default:
                 throw new Error('Could not determine server type.');
         }

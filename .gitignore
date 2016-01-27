@@ -1,3 +1,4 @@
 node_modules/
 .eslintrc
 .tern-project
+web-remote-control.js

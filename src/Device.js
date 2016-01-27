@@ -27,33 +27,23 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var PingManager = require('./PingManager');
-var ClientConnection = require('./ClientConnection');
 
 var NET_TIMEOUT = 5 * 1000;
 
-function Device(settings) {
+function Device(settings, Connection) {
     this.proxyUrl = settings.proxyUrl;
     this.port = settings.port;
-    this.channel = settings.channel;
+    this.channel = settings.channel || '1';
     this.keepalive = settings.keepalive;
-    this.deviceType = settings.deviceType;
-    this.log = settings.log;
-
-    if (settings.udp4 === true && settings.tcp === true) {
-        throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
-    }
-    if (settings.udp4 === false && settings.tcp === false) {
-        throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
-    }
+    this.deviceType = settings.deviceType || 'controller';
+    this.log = settings.log || function() {};
 
     this.pingManager = new PingManager();
-    this.connection = new ClientConnection();
-    var protocol = settings.udp4 ? 'udp4' : 'tcp';
-    this.connection.createProxySocket(protocol, settings.proxyUrl, settings.port);
+    this.connection = new Connection(settings);
 
     this.uid = undefined;
-    // This keeps a track of ther controller sequenceNumber.  If a command with a
-    // smaller number is received, we drop it.
+    // This keeps a track of ther controller sequenceNumber.  If a command with
+    // a smaller number is received, we drop it.
     this.remoteSeqNum = 0;
     this.mySeqNum = 1;
 

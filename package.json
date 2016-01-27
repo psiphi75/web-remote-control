@@ -5,15 +5,15 @@
   "version": "1.4.0",
   "main": "index.js",
   "author": {
-      "name" : "Simon Werner",
-      "url" : "https://github.com/psiphi75"
+    "name": "Simon Werner",
+    "url": "https://github.com/psiphi75"
   },
-  "repository" : {
-      "type" : "git",
-      "url" : "https://github.com/psiphi75/web-remote-control"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/psiphi75/web-remote-control"
   },
   "bugs": {
-      "url" : "https://github.com/psiphi75/web-remote-control/issues"
+    "url": "https://github.com/psiphi75/web-remote-control/issues"
   },
   "scripts": {
     "test": "./test/runAll.sh"
@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "shortid": "^2.2.4",
+    "socket.io": "^1.4.5",
     "split": "^1.0.0"
   }
 }

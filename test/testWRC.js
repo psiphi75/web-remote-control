@@ -59,7 +59,7 @@ if (isLocalProxy) {
     });
 
 
-    var localProxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP });
+    var localProxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP, socketio: false });
     var localToy;
     var localController = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
 

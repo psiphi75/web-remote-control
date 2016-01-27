@@ -37,19 +37,60 @@ function ServerConnection (options) {
 
     this.log = options.log;
     this.port = options.port;
+    this.socketIOport = 33331;
     this.proxyUrl = options.proxyUrl;
 
     if (!(options.udp4 === false)) {
         this.listenUDP4();
     }
-
     if (!(options.tcp === false)) {
         this.listenTCP();
     }
+    if (!(options.socketio === false)) {
+        this.listenSocketIO();
+    }
+
     EventEmitter.call(this);
 
 }
 util.inherits(ServerConnection, EventEmitter);
+
+/**
+ * Start the SocketII server on the given port and address (optional)
+ * @param  {number} port    The port number to listen on.
+ * @param  {string} address (optional) The IP address to listen on.
+ */
+ServerConnection.prototype.listenSocketIO = function() {
+
+    var socketio = require('socket.io');
+    var self = this;
+    this.socketio = socketio();
+    this.socketio.on('connection', function(socket) {
+        var socketInfo = {
+            protocol: 'socketio',
+            address: socket.client.conn.remoteAddress,
+            port: '????',
+            socketId: socket.id,
+            socket: socket
+        };
+        socket.on('event', function(message) {
+
+            // Socket.IO sends messages a bit different
+            if (message && message.type === 'Buffer') {
+                message = new Buffer(message.data);
+            }
+
+            handleMessage.bind(self)(message, socketInfo);
+        });
+        socket.on('close', function() {
+            self.emit('socket-close', socketInfo.socketId);
+        });
+    });
+    this.socketio.on('error', handleError);
+    this.socketio.listen(this.socketIOport);
+    this.emit('listening', this.socketIOport, this.proxyUrl, 'socketio');
+
+};
 
 
 /**
@@ -82,6 +123,35 @@ ServerConnection.prototype.listenUDP4 = function() {
     });
 };
 
+ServerConnection.prototype.listenTCP = function() {
+
+    var net = require('net');
+    var split = require('split');
+    var self = this;
+    this.tcp = net.createServer(function(socket) {
+        var socketInfo = {
+            protocol: 'tcp',
+            address: socket.remoteAddress,
+            port: socket.remotePort,
+            socketId: socket.remoteAddress + ':' + socket.remotePort,
+            socket: socket
+        };
+        var stream = socket.pipe(split('\n'));
+        stream.on('data', function(message) {
+            handleMessage.bind(self)(message, socketInfo);
+        });
+        stream.on('close', function() {
+            self.emit('socket-close', socketInfo.socketId);
+        });
+
+    });
+    this.tcp.on('error', handleError);
+    this.tcp.on('listening', function () {
+        self.emit('listening', self.port, self.proxyUrl, 'tcp');
+    });
+    this.tcp.listen(self.port);
+
+};
 
 function handleError(err) {
     console.log(err);
@@ -108,37 +178,6 @@ function handleMessage(message, socketInfo) {
 
     this.log(new Date(), socketInfo.address + ':' + socketInfo.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
 }
-
-
-ServerConnection.prototype.listenTCP = function() {
-
-    var net = require('net');
-    var split = require('split');
-    var self = this;
-    this.tcp = net.createServer(function(socket) {
-        var socketInfo = {
-            protocol: 'tcp',
-            address: socket.remoteAddress,
-            port: socket.remotePort,
-            socketId: socket.remoteAddress + ':' + socket.remotePort,
-            tcpSocket: socket
-        };
-        var stream = socket.pipe(split('\n'));
-        stream.on('data', function(message) {
-            handleMessage.bind(self)(message, socketInfo);
-        });
-        stream.on('close', function() {
-            self.emit('socket-close', socketInfo.socketId);
-        });
-
-    });
-    this.tcp.on('error', handleError);
-    this.tcp.on('listening', function () {
-        self.emit('listening', self.port, self.proxyUrl, 'tcp');
-    });
-    this.tcp.listen(self.port);
-
-};
 
 
 /**
@@ -174,10 +213,15 @@ ServerConnection.prototype.send = function(msgObj) {
 
     if (socketInfo.protocol === 'tcp') {
         try {
-            socketInfo.tcpSocket.write(msgComp);
+            socketInfo.socket.write(msgComp);
         } catch (ex) {
             console.error('ServerConnection.send():error: ', ex);
         }
+        return;
+    }
+
+    if (socketInfo.protocol === 'socketio') {
+        socketInfo.socket.emit('event', msgComp);
         return;
     }
 

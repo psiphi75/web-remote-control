@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Web Controller</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js"></script>
+    <script src="./web-remote-control.js"></script>
+    <script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
+    <script>
+
+        var Device = require('Device');
+        var controller = new Device({ proxyUrl: 'localhost', deviceType:'controller' }, require('WebClientConnection'));
+
+        controller.connection.socket.on('connect', function() {
+            controller.on('register', function() {
+                controller.ping(function(t) {
+                    console.log('pinged: ', t);
+                })
+                controller.command('do this!!!');
+                controller.on('status', function(status) {
+                    console.log('Controller: Toy said: ', status);
+                })
+            });
+        });
+
+        var toy = new Device({ proxyUrl: 'localhost', deviceType:'toy' }, require('WebClientConnection'));
+
+        toy.connection.socket.on('connect', function() {
+            toy.on('register', function() {
+                toy.ping(function(t) {
+                    console.log('pinged: ', t);
+                })
+                toy.status('hello world');
+                toy.on('command', function(cmd) {
+                    console.log('Toy: I have to do: ', cmd);
+                })
+            });
+        });
+
+    </script>
+</head>
+
+<body onload="init()">
+    <div id="ball"></div>
+    <div id="text"></div>
+</body>
+</html>
