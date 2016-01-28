@@ -27,6 +27,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var messageHandler = require('./messageHandler');
+var SOCKET_IO_PORT = 33331;
 
 /**
  * The connection manager will handle the TCP and UDP transport.  As well as
@@ -37,7 +38,6 @@ function ServerConnection (options) {
 
     this.log = options.log;
     this.port = options.port;
-    this.socketIOport = 33331;
     this.proxyUrl = options.proxyUrl;
 
     if (!(options.udp4 === false)) {
@@ -87,8 +87,13 @@ ServerConnection.prototype.listenSocketIO = function() {
         });
     });
     this.socketio.on('error', handleError);
-    this.socketio.listen(this.socketIOport);
-    this.emit('listening', this.socketIOport, this.proxyUrl, 'socketio');
+    this.socketio.listen(SOCKET_IO_PORT);
+
+
+    // Wait until the event listener is attached to THIS.
+    setTimeout(function () {
+        self.emit('listening', SOCKET_IO_PORT, self.proxyUrl, 'socketio');
+    }, 100);
 
 };
 

@@ -50,7 +50,10 @@ var defaults = {
     tcp: false,
 
     // Use the UDP protocol - only the proxy can use both TCP and UDP.
-    udp4: true
+    udp4: true,
+
+    // Allow connections to proxy via Socket.IO
+    socketio: true
 };
 
 // The proxy is the go-between server

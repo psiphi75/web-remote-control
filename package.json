@@ -2,7 +2,7 @@
   "name": "web-remote-control",
   "description": "Fast, real-time, remote control of devices (drones, boats, etc) from the web.",
   "license": "APSL-2.0",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "main": "index.js",
   "author": {
     "name": "Simon Werner",
@@ -34,6 +34,7 @@
   "dependencies": {
     "shortid": "^2.2.4",
     "socket.io": "^1.4.5",
-    "split": "^1.0.0"
+    "split": "^1.0.0",
+    "node-static": "^0.7.7"
   }
 }

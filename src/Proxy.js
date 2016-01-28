@@ -43,7 +43,7 @@ function Prox(settings) {
     this.server = new ServerConnection(settings);
 
     this.server.on('listening', function (localPort, localAddress, protocol) {
-        self.log('Web-Remote-Control Proxy Server listening to ' + protocol + ' on ' + localAddress + ':' + localPort);
+        self.log('Web-Remote-Control Proxy Server listening to "' + protocol + '" requests on ' + localAddress + ':' + localPort);
     });
 
     this.server.on('error', function(err) {

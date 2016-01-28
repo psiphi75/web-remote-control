@@ -34,7 +34,12 @@ var util = require('util');
  */
 function WebClientConnection(options) {
 
-    this.createProxySocket('http://' + options.proxyUrl, 33331);
+    var url = window.location.host.split(':')[0];
+    if (options && options.proxyUrl) {
+        url = options.proxyUrl;
+    }
+
+    this.createProxySocket('http://' + url, 33331);
 
     EventEmitter.call(this);
 }

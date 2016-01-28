@@ -156,13 +156,14 @@ var settings = {
 var proxy = wrc.createProxy(settings);
 ```
 
-## Known Issues
+## Known Issues and To-Do items
 
 Below are known issues, feel free to fix them.
 
-- **Done**: The web component needs creating and documented.
 - Out of order packets are not handled, we should only use the most recent command packet.
 - Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.  However, when I send packets with smaz they don't decompress properly. Although the same data compresses and decompresses fine when it is not transmitted.
+- Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
+- **Done**: The web component needs creating and documented.
 - **Fixed**: TCP functionality missing.
 - **Fixed**: If we are not registered, try again in 30 seconds.
 - **Fixed**: Each ping creates a new listener.

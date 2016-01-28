@@ -26,16 +26,24 @@
 
 var stat = require('node-static');
 
-var fileServer = new stat.Server('../www');
+var fileServer = new stat.Server('./public');
+
+var port = 8888;
 
 require('http').createServer(function (request, response) {
     request.addListener('end', function () {
+        //
+        // Serve files!
+        //
         fileServer.serve(request, response)
                   .addListener('error', function (err) {
-                        console.error('Error serving ' + request.url + ' - ' + err.message);
+                          console.error('Error serving ' + request.url + ' - ' + err.message);
                   })
                   .addListener('success', function (obj) {
-                        console.error(request.url + ' (' + obj.status + ')', obj.headers.Date);
+                          console.error(request.url + ' (' + obj.status + ')', obj.headers.Date);
                   });
     }).resume();
-}).listen(8888);
+
+}).listen(port);
+
+console.log('Webserver listening on port: ', port);
