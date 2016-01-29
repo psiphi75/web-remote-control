@@ -33,7 +33,21 @@ var NET_TIMEOUT = 5 * 1000;
 function Device(settings, Connection) {
     this.proxyUrl = settings.proxyUrl;
     this.port = settings.port;
-    this.channel = settings.channel || '1';
+
+    switch (typeof settings.channel) {
+        case 'undefined':
+            this.channel = '1';
+            break;
+        case 'number':
+            this.channel = parseFloat(settings.channel);
+            break;
+        case 'string':
+            this.channel = settings.channel;
+            break;
+        default:
+            throw new Error('Channel has an invalid type: ', typeof settings.channel);
+    }
+
     this.keepalive = settings.keepalive;
     this.deviceType = settings.deviceType || 'controller';
     this.log = settings.log || function() {};
@@ -73,11 +87,11 @@ function Device(settings, Connection) {
     function handleRegisterResponse(responseMsgObj) {
 
         if (!this.uid) {
-            this.log('Registered');
 
             if (typeof responseMsgObj.uid !== 'string') {
                 throw new Error('unable to initailise');
             }
+            this.log('Registered.  UID:', responseMsgObj.uid);
             this.uid = responseMsgObj.uid;
         }
 

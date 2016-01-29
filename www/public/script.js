@@ -5,7 +5,7 @@
 // TODO: Tidy code
 // TODO: Only simple status update given.  Could make it neater.
 
-var NETWORK_UPDATE_FREQ = 4;      // How many times per second to update the network (send commands)
+var NETWORK_UPDATE_FREQ = 0.5;      // How many times per second to update the network (send commands)
 var BROWSER_UPDATE_FREQ = 30;     // How many times per second to refresh the browser screen
 
 var Device = require('Device');
@@ -14,7 +14,7 @@ var controller = new Device({ deviceType: 'controller' }, require('WebClientConn
 
 controller.connection.socket.on('connect', function() {
     controller.on('register', function() {
-        document.getElementById('connection').innerHTML = '<p>Registered</p>';
+        document.getElementById('connection').innerHTML = '<p>Registered on channel: ' + controller.channel + ' with UID: ' + controller.uid + '</p>';
         controller.ping(function(t) {
             console.log('pinged: ', t);
         });

@@ -35,7 +35,7 @@ var defaults = {
     // This is the channel to use.  The proxy will ensure that only devices on
     // the same channel can communicate together.  The controller and toy need
     // to be on the same channel.  You can make the channel a unique string.
-    channel: 1,
+    channel: '1',
 
     // How often the device pings the proxy.  This helps ensure the connection
     // is kept alive.  You can disable this by setting it to 0 (zero). Time is
