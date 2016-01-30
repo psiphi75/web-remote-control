@@ -5,7 +5,7 @@
 // TODO: Tidy code
 // TODO: Only simple status update given.  Could make it neater.
 
-var NETWORK_UPDATE_FREQ = 0.5;      // How many times per second to update the network (send commands)
+var NETWORK_UPDATE_FREQ = 15;      // How many times per second to update the network (send commands)
 var BROWSER_UPDATE_FREQ = 30;     // How many times per second to refresh the browser screen
 
 var Device = require('Device');
@@ -26,11 +26,21 @@ controller.connection.socket.on('connect', function() {
             document.getElementById('connection').innerHTML = '<p>' + err + '</p>';
             console.log('There was an error: ', err);
         });
+
+        var lastX = -100;
+        var lastY = -100;
         setInterval(function() {
+            var thisX = Math.round(offset.x * 100) / 100;
+            var thisY = Math.round(offset.y * 100) / 100;
+            if (lastX === thisX && thisY === lastY) {
+                return;
+            }
+            lastX = thisX;
+            lastY = thisY;
             controller.command({
                 action: 'move',
-                x: Math.round(offset.x * 1000) / 1000,
-                y: Math.round(offset.y * 1000) / 1000
+                x: thisX,
+                y: thisY
             });
         }, 1000 / NETWORK_UPDATE_FREQ);
     });
