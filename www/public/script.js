@@ -19,6 +19,11 @@ controller.connection.socket.on('connect', function() {
             console.log('pinged: ', t);
         });
         controller.on('status', function(status) {
+
+            if (typeof status === 'object') {
+                status = JSON.stringify(status);
+            }
+
             document.getElementById('status').innerHTML = '<p>' + status + '</p>';
             console.log('Controller: Toy said: ', status);
         });
