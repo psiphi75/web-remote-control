@@ -45,7 +45,7 @@ exports.parseIncomingMessage = function(message) {
     try {
         msgObj = decompress(message);
     } catch (ex) {
-        throw new Error('There was an error parsing the incoming message: ' + ex);
+        throw new Error('There was an error parsing the incoming message: ' + ex + JSON.stringify(message.toString()));
     }
 
     if (typeof msgObj !== 'object') {
@@ -116,6 +116,7 @@ var compress = function(data) {
     var str = JSON.stringify(data);
 
     // We use a newline to seperate out TCP messages
+    // FIXME: This looses information.  But do we care?
     if (str.indexOf('\n') >= 0) {
         throw new Error('Messages must not have new line characters.');
     }
@@ -130,6 +131,15 @@ var decompress = function(compressedData) {
 
     var buf = compressedData;
     var str = buf.toString();
+
+    /* socket.io has a tendancy to concatinate messages */
+    var strArray = str.split('\n');
+    var offset = 1;
+    if (strArray[strArray.length - 1] === '') {
+        offset = 2;
+    }
+    str = strArray[strArray.length - offset];
+
     var data = JSON.parse(str);
 
     // console.log(4, compressedData.toString());

@@ -2,7 +2,7 @@
   "name": "web-remote-control",
   "description": "Fast, real-time, remote control of devices (drones, boats, etc) from the web.",
   "license": "APSL-2.0",
-  "version": "1.5.4",
+  "version": "1.5.6",
   "main": "index.js",
   "author": {
     "name": "Simon Werner",
@@ -16,7 +16,8 @@
     "url": "https://github.com/psiphi75/web-remote-control/issues"
   },
   "scripts": {
-    "test": "./test/runAll.sh"
+    "test": "./test/runAll.sh",
+    "prepublish": "cd scripts && ./build.sh && cd .. "
   },
   "keywords": [
     "udp",

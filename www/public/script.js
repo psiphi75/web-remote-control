@@ -21,10 +21,37 @@ controller.connection.socket.on('connect', function() {
         controller.on('status', function(status) {
 
             if (typeof status === 'object') {
-                status = JSON.stringify(status);
+                var html = '';
+                html += '<ul>\n';
+                html += '    <li><b>Gyro:</b> ';
+                html += '        <ul>';
+                html += '            <li>x: ' + status.gyro.x + '</li>';
+                html += '            <li>y: ' + status.gyro.y + '</li>';
+                html += '            <li>z: ' + status.gyro.z + '</li>';
+                html += '        </ul>';
+                html += '    </li>';
+                html += '    <li><b>Accel:</b> ';
+                html += '        <ul>';
+                html += '            <li>x: ' + status.accel.x + '</li>';
+                html += '            <li>y: ' + status.accel.y + '</li>';
+                html += '            <li>z: ' + status.accel.z + '</li>';
+                html += '        </ul>';
+                html += '    </li>';
+                html += '    <li><b>Compass (heading):</b> ' + status.compass + '</li>';
+                html += '    <li><b>Compass (x, y, z):</b> ';
+                html += '        <ul>';
+                html += '            <li>x: ' + status.compassRaw.x + '</li>';
+                html += '            <li>y: ' + status.compassRaw.y + '</li>';
+                html += '            <li>z: ' + status.compassRaw.z + '</li>';
+                html += '        </ul>';
+                html += '    </li>';
+                html += '    <li><b>GPS:</b> ' + status.gps + '</li>';
+                html += '</ul>';
+            } else {
+                html = '<p>' + status + '</p>';
             }
+            document.getElementById('status').innerHTML = html;
 
-            document.getElementById('status').innerHTML = '<p>' + status + '</p>';
             console.log('Controller: Toy said: ', status);
         });
         controller.on('error', function(err) {
