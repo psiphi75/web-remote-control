@@ -91,20 +91,18 @@ function init(type) {
             params.log = defaults.log;
         }
 
-        var ClientConnection;
-        var obj;
         switch (type) {
+
             case 'proxy':
-                obj = require('./src/Proxy');
-                return new obj(settings);
+                var Proxy = require('./src/Proxy');
+                return new Proxy(settings);
+
             case 'toy':
-                obj = require('./src/Device');
-                ClientConnection = require('./src/ClientConnection');
-                return new obj(settings, ClientConnection);
             case 'controller':
-                obj = require('./src/Device');
-                ClientConnection = require('./src/ClientConnection');
-                return new obj(settings, ClientConnection);
+                var Device = require('./src/Device');
+                var ClientConnection = require('./src/ClientConnection');
+                return new Device(settings, ClientConnection);
+
             default:
                 throw new Error('Could not determine server type.');
         }
