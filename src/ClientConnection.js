@@ -130,25 +130,28 @@ ClientConnection.prototype.closeAll = function() {
 
 /**
  * Sends a message to the remote device.
- * @param  {string} err    The error string
- * @param  {string} address The remote address.
- * @param  {number} remote The remote port.
+ * @param  {object} msgObj   The message and socket.
+ * @param  {function} callback (optional)
  */
-ClientConnection.prototype.send = function(msgObj) {
+ClientConnection.prototype.send = function(msgObj, callback) {
+
+    callback = callback || function () {};
 
     var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
 
     if (this.udp4) {
         this.udp4.send(sendBuffer, 0, sendBuffer.length, this.remotePort, this.remoteAddress);
+        callback(null, 'sent');
         return;
     }
 
     if (this.tcp) {
         this.tcp.write(sendBuffer);
+        callback(null, 'sent');
         return;
     }
 
-    throw new Error('Trying to send a message when a protocol has not been configured.');
+    callback('Trying to send a message when a protocol has not been configured.', null);
 
 };
 
