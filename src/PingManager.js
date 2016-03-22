@@ -46,14 +46,13 @@ PingManager.prototype.add = function(pingId, callback) {
 
     // Create the ping, and make it self destruct.
     var self = this;
-    var ping = {};
-    ping.callback = callback;
-    ping.timeoutHandle = setTimeout(function removeStalePing() {
-
-        // and delete the stale ping
-        self.handleIncomingPing(pingId, -1);
-
-    }, this.MAX_PING_WAIT_TIME);
+    var ping = {
+        callback: callback,
+        timeoutHandle: setTimeout(function removeStalePing() {
+                                      // and delete the stale ping
+                                      self.handleIncomingPing(pingId, -1);
+                                  }, this.MAX_PING_WAIT_TIME)
+    };
 
     this.pingList[pingId] = ping;
 
@@ -83,6 +82,12 @@ PingManager.prototype.handleIncomingPing = function(pingId, time) {
         console.error('Did not expect this.');
     }
 
+};
+
+PingManager.prototype.close = function () {
+    for (var pingId in this.pingList) {
+        this.handleIncomingPing(pingId, -1);
+    }
 };
 
 module.exports = PingManager;

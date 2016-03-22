@@ -61,6 +61,7 @@ exports.parseIncomingMessage = function(message) {
         case 'ping':
         case 'status':
         case 'command':
+        case 'error':
             requiresList = ['type', 'seq', 'data', 'uid'];
             break;
         default:

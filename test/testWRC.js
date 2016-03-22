@@ -40,6 +40,11 @@ if (process.env.PROXY_ADDRESS) {
 }
 
 var test = require('tape');
+var tapSpec = require('tap-spec');
+test.createStream()
+  .pipe(tapSpec())
+  .pipe(process.stdout);
+
 var messageHandler = require('../src/messageHandler');
 var wrc = require('../index');
 
@@ -122,10 +127,33 @@ if (isLocalProxy) {
 
     });
 
+    test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-registers', function(t) {
+
+        t.plan(2);
+
+        // "Crash" the proxy - we simulate by removing the toy from DevMan
+        localProxy.devices.remove(localToy.uid);
+
+        localToy.on('error', function fn1 () {
+            t.pass('proxy sent an error response, as expected');
+            localToy.removeListener('error', fn1);
+        });
+
+        localToy.on('register', function fn2 (msgUid) {
+            t.true(typeof msgUid === 'string', '... and we re-registered okay');
+            t.end();
+
+            localToy.removeListener('register', fn2);
+        });
+
+        localToy.ping();
+
+    });
+
 }  // end of isLocalProxy
 
 
-var options = { channel: channel1, log: console.log, keepalive: 0, udp4: UDP, tcp: TCP, proxyUrl: PROXY_ADDRESS };
+var options = { channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP, proxyUrl: PROXY_ADDRESS };
 var controller = wrc.createController(options);
 var toy = wrc.createToy(options);
 
@@ -142,7 +170,7 @@ function regCounter () {
 
 function startRemainingTests () {
 
-    test('Test we can ping the localProxy and get a result', function(t) {
+    test('Test we can ping the Proxy and get a result', function(t) {
 
         t.plan(4);
 
@@ -226,6 +254,7 @@ function startRemainingTests () {
                 localProxy.close();
                 localToy.close();
                 localController.close();
+
             }
 
             toy.close();

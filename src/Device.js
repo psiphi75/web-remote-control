@@ -27,6 +27,7 @@ var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
 var PingManager = require('./PingManager');
+var errors = require('./errors.js');
 
 var NET_TIMEOUT = 5 * 1000;
 
@@ -56,6 +57,7 @@ function Device(settings, Connection) {
     this.connection = new Connection(settings);
 
     this.uid = undefined;
+
     // This keeps a track of ther controller sequenceNumber.  If a command with
     // a smaller number is received, we drop it.
     this.remoteSeqNum = 0;
@@ -66,37 +68,47 @@ function Device(settings, Connection) {
     }
 
     var self = this;
-    this.connection.on('error', function(err) {
-        self.emit('error', 'Device: There was an error: ' + err);
-    });
-    this.connection.on('register', handleRegisterResponse.bind(this));
-    this.connection.on('status', reEmit.bind(this));
-    this.connection.on('command', reEmit.bind(this));
-    this.connection.on('ping', function fn(msgObj) {
-        var pingTime = (new Date()).getTime() - parseInt(msgObj.data);
-        self.pingManager.handleIncomingPing(msgObj.seq, pingTime);
-    });
+    this.connection.on('error', handleCommError);
+    this.connection.on('register', handleRegisterResponse);
+    this.connection.on('status', reEmit);
+    this.connection.on('command', reEmit);
+    this.connection.on('ping', handlePing);
 
     // Register the device, this announces us.
     this.register();
 
     function reEmit(responseMsgObj) {
-        this.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
+        self.emit(responseMsgObj.type, responseMsgObj.data, responseMsgObj.seq);
     }
 
     function handleRegisterResponse(responseMsgObj) {
 
-        if (!this.uid) {
-
+        if (!self.uid) {
             if (typeof responseMsgObj.uid !== 'string') {
                 throw new Error('unable to initailise');
             }
-            this.log('Registered.  UID:', responseMsgObj.uid);
-            this.uid = responseMsgObj.uid;
+            self.log('Registered.  UID:', responseMsgObj.uid);
+            self.uid = responseMsgObj.uid;
         }
 
-        clearTimeout(this.recheckRegisteryTimeout);
-        reEmit.bind(this)(responseMsgObj);
+        clearTimeout(self.recheckRegisteryTimeout);
+        reEmit(responseMsgObj);
+    }
+
+    function handlePing(responseMsgObj) {
+        var pingTime = (new Date()).getTime() - parseInt(responseMsgObj.data);
+        self.pingManager.handleIncomingPing(responseMsgObj.seq, pingTime);
+    }
+
+    function handleCommError(responseMsgObj) {
+        var errorCode = responseMsgObj.data;
+        var error = errors.getByCode(errorCode);
+        if (error.type === 'DEVICE_NOT_REGISTERED') {
+            // Need to re-register
+            self.uid = undefined;
+            self.register();
+        }
+        self.emit('error', 'Device: There was an error: ' + responseMsgObj);
     }
 
     // Make ourself an emiter
@@ -114,6 +126,8 @@ util.inherits(Device, EventEmitter);
  */
 Device.prototype.register = function () {
 
+    this.clearRegisterTimeout();
+
     this.send('register', {
         deviceType: this.deviceType,
         channel: this.channel
@@ -122,12 +136,18 @@ Device.prototype.register = function () {
     // Check the registery again in RECHECK_REGISTER seconds if we do not get a response
     var self = this;
     this.recheckRegisteryTimeout = setTimeout(function checkRegistery() {
-
         self.log(self.deviceType + ': unable to register with proxy, trying again.');
         self.register();
 
     }, NET_TIMEOUT);
 
+};
+
+Device.prototype.clearRegisterTimeout = function () {
+    if (!this.recheckRegisteryTimeout) {
+        return;
+    }
+    clearTimeout(this.recheckRegisteryTimeout);
 };
 
 
@@ -185,6 +205,11 @@ Device.prototype.command = function (msgString) {
  */
 Device.prototype.send = function(type, data) {
 
+    if (!this.uid && type !== 'register') {
+        this.log('Device.send(): Not yet registered.');
+        return;
+    }
+
     var msgObj = {
         type: type,
         uid: this.uid,
@@ -195,7 +220,6 @@ Device.prototype.send = function(type, data) {
     // Send the message to the proxy.  Use the IP have we have determined it.
     this.connection.send(msgObj);
     this.mySeqNum += 1;
-
 };
 
 
@@ -203,12 +227,16 @@ Device.prototype.send = function(type, data) {
  * Close all connections.
  */
 Device.prototype.close = function() {
+    this.clearRegisterTimeout();
     if (this.timeoutHandle) {
         clearTimeout(this.timeoutHandle);
     }
     if (this.connection) {
         this.connection.closeAll();
     }
+    this.removeAllListeners();
+    this.connection.removeAllListeners();
+    this.pingManager.close();
 };
 
 

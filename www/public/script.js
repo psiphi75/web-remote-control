@@ -45,7 +45,14 @@ controller.connection.socket.on('connect', function() {
                 html += '            <li>z: ' + status.compassRaw.z + '</li>';
                 html += '        </ul>';
                 html += '    </li>';
-                html += '    <li><b>GPS:</b> ' + status.gps + '</li>';
+                if (status.gps) {
+                    html += '    <li><b>GPS:</b> ';
+                    html += '        <ul>';
+                    html += '            <li>x: ' + status.gps.latitude + '</li>';
+                    html += '            <li>y: ' + status.gps.longitude + '</li>';
+                    html += '        </ul>';
+                    html += '    </li>';
+                }
                 html += '</ul>';
             } else {
                 html = '<p>' + status + '</p>';

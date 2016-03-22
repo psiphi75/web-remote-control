@@ -198,6 +198,8 @@ ServerConnection.prototype.closeAll = function() {
         this.tcp.close();
     }
 
+    this.removeAllListeners();
+
 };
 
 /**

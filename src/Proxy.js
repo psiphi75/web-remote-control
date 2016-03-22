@@ -28,6 +28,7 @@ var util = require('util');
 
 var DevMan = require('./DeviceManager');
 var ServerConnection = require('./ServerConnection');
+var errors = require('./errors.js');
 
 /**
  * This is the proxy server.  It is the "man in the middle".  Devices (toys and
@@ -46,9 +47,7 @@ function Prox(settings) {
         self.log('Web-Remote-Control Proxy Server listening to "' + protocol + '" requests on ' + localAddress + ':' + localPort);
     });
 
-    this.server.on('error', function(err) {
-        console.error('Proxy: There was an error: ', err);
-    });
+    this.server.on('error', handleError.bind(this));
 
     this.server.on('socket-close', function (socketId) {
         self.devices.removeBySocketId(socketId);
@@ -70,6 +69,7 @@ util.inherits(Prox, EventEmitter);
  */
 Prox.prototype.close = function() {
     this.server.closeAll();
+    this.removeAllListeners();
 };
 
 
@@ -81,7 +81,7 @@ Prox.prototype.close = function() {
 Prox.prototype.registerDevice = function(msgObj) {
 
     if (!msgObj.data) {
-        console.error('msgObj has no data: ', msgObj);
+        this.log('msgObj has no data: ', msgObj);
         return;
     }
 
@@ -89,12 +89,12 @@ Prox.prototype.registerDevice = function(msgObj) {
     var channel = msgObj.data.channel;
 
     if (!this.devices.validDeviceType(deviceType)) {
-        console.error('Invalid device type: ', deviceType);
+        this.log('Invalid device type: ', deviceType);
         return;
     }
 
     if (typeof channel === 'undefined') {
-        console.error('registerDevice: device channel is undefined');
+        this.log('registerDevice: device channel is undefined');
         return;
     }
 
@@ -117,7 +117,8 @@ Prox.prototype.respondToPing = function(msgObj) {
     var device = this.devices.update(msgObj.uid, msgObj.socket);
 
     if (!device) {
-        console.error('Unable to find the device to update: ', msgObj);
+        this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
+        this.log('Unable to find the device to update: ', msgObj);
         return;
     }
 
@@ -160,6 +161,7 @@ Prox.prototype.forward = function(forwardToType, msgObj) {
     var remoteDevice = this.devices.update(msgObj.uid, msgObj.socket);
 
     if (!remoteDevice) {
+        this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
         console.error('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
         return;
     }
@@ -181,6 +183,7 @@ Prox.prototype.forward = function(forwardToType, msgObj) {
 
 };
 
+
 /**
  * This will send a message to the remote device.
  * @param  {object} msgObj The object to send as JSON.
@@ -190,5 +193,27 @@ Prox.prototype.send = function(msgObj) {
     this.server.send(msgObj);
 };
 
+
+/**
+ * Respond to the given socket with an error.
+ * @param  {object} msgObj    The outgoing message deatils.
+ * @param  {object} errorType The error to send
+ */
+Prox.prototype.respondError = function (msgObj, errorType) {
+    var responseObj = {
+        type: 'error',
+        seq: msgObj.seq,
+        uid: null,
+        data: errorType.code,
+        socket: msgObj.socket
+    };
+    this.send(responseObj);
+};
+
+function handleError(err) {
+    var errMsg = 'Proxy: There was an error:\t' + JSON.stringify(err);
+    self.log(errMsg);
+    self.emit(errMsg);
+}
 
 module.exports = Prox;
