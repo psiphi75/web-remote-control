@@ -24,23 +24,37 @@
 'use strict';
 
 module.exports = {
-    'DEVICE_NOT_REGISTERED': {
+    DEVICE_NOT_REGISTERED: {
+        type: 'DEVICE_NOT_REGISTERED',
         code: '1001',
-        message: 'Device not registed'
+        message: 'Device is not registered.'
+    },
+    ERROR_NOT_FOUND: {
+        type: 'ERROR_NOT_FOUND',
+        code: '9001',
+        message: 'The specified code error was not found.'
     },
 
     getByCode: function (code) {
-        var codeStr = code.toString();
+
+        switch (typeof code) {
+            case 'number':
+                code = code.toString();
+                break;
+            case 'string':
+                break;
+            default:
+                return this.ERROR_NOT_FOUND;
+        }
+
         for (var errType in this) {
             var err = this[errType];
-            if (err.code === codeStr) {
-                return {
-                    type: errType,
-                    code: err.code,
-                    message: err.message
-                };
+            if (err.code === code) {
+                return err;
             }
         }
-        return false;
+
+        return this.ERROR_NOT_FOUND;
+
     }
 };

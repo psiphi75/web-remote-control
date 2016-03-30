@@ -47,6 +47,8 @@ function ClientConnection(options) {
         this.createProxySocket('tcp', options.proxyUrl, options.port);
     }
 
+    this.log = options.log;
+
     EventEmitter.call(this);
 }
 util.inherits(ClientConnection, EventEmitter);
@@ -75,8 +77,8 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
 
             this.tcp = new net.Socket();
             this.tcp.connect(this.remotePort, this.remoteAddress);
-            this.tcp.on('error', handleError.bind(this));
-            this.tcp.on('data', handleMessage.bind(this));
+            this.tcp.on('error', handleError);
+            this.tcp.on('data', handleMessage);
             this.tcp.on('close', function() {
                 delete self.tcp;
             });
@@ -85,31 +87,31 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
         default:
             throw new Error('invalid protocol: ', protocol);
     }
+
+    function handleError(err) {
+        self.log(err);
+        self.emit('error', err);
+    }
+
+    function handleMessage(message) {
+
+        var msgObj;
+        try {
+            msgObj = messageHandler.parseIncomingMessage(message);
+        } catch (ex) {
+            self.emit('error', ex);
+            return;
+        }
+
+        // Empty packet arrived, this happens when remote closes connection
+        if (msgObj === null) {
+            return;
+        }
+
+        self.emit(msgObj.type, msgObj);
+
+    }
 };
-
-function handleError(err) {
-    console.log(err);
-    this.emit('error', err);
-}
-
-function handleMessage(message) {
-
-    var msgObj;
-    try {
-        msgObj = messageHandler.parseIncomingMessage(message);
-    } catch (ex) {
-        this.emit('error', ex);
-        return;
-    }
-
-    // Empty packet arrived, this happens when remote closes connection
-    if (msgObj === null) {
-        return;
-    }
-
-    this.emit(msgObj.type, msgObj);
-
-}
 
 
 /**
