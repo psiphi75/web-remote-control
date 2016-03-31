@@ -1,5 +1,6 @@
 node_modules/
 .eslintrc
 .tern-project
+npm-debug.log
 web-remote-control.js
 tmp
