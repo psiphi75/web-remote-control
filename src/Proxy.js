@@ -47,7 +47,7 @@ function Prox(settings) {
         self.log('Web-Remote-Control Proxy Server listening to "' + protocol + '" requests on ' + localAddress + ':' + localPort);
     });
 
-    this.server.on('error', handleError.bind(this));
+    this.server.on('error', this.handleError.bind(this));
 
     this.server.on('socket-close', function (socketId) {
         self.devices.removeBySocketId(socketId);
@@ -210,10 +210,10 @@ Prox.prototype.respondError = function (msgObj, errorType) {
     this.send(responseObj);
 };
 
-function handleError(err) {
+Prox.prototype.handleError = function(err) {
     var errMsg = 'Proxy: There was an error:\t' + JSON.stringify(err);
-    self.log(errMsg);
-    self.emit(errMsg);
-}
+    this.log(errMsg);
+    this.emit(errMsg);
+};
 
 module.exports = Prox;
