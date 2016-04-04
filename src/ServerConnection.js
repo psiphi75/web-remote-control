@@ -99,9 +99,7 @@ ServerConnection.prototype.listenSocketIO = function() {
 
 
 /**
- * Start the UDP server on the given port and address (optional)
- * @param  {number} port    The port number to listen on.
- * @param  {string} address (optional) The IP address to listen on.
+ * Start the UDP server on the given port and address (optional).
  */
 ServerConnection.prototype.listenUDP4 = function() {
 
@@ -123,11 +121,13 @@ ServerConnection.prototype.listenUDP4 = function() {
     this.udp4.on('listening', function () {
         self.emit('listening', self.port, self.proxyUrl, 'udp4');
     });
-    this.udp4.bind({
-        port: self.port
-    });
+    this.udp4.bind(self.port);
 };
 
+
+/**
+ * Start the TCP server on the given port and address (optional).
+ */
 ServerConnection.prototype.listenTCP = function() {
 
     var net = require('net');
