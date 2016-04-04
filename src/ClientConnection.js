@@ -42,8 +42,10 @@ function ClientConnection(options) {
     }
 
     if (options.udp4) {
+        this.enable_compression = true;
         this.createProxySocket('udp4', options.proxyUrl, options.port);
     } else {
+        this.enable_compression = false;
         this.createProxySocket('tcp', options.proxyUrl, options.port);
     }
 
@@ -97,7 +99,7 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
 
         var msgObj;
         try {
-            msgObj = messageHandler.parseIncomingMessage(message);
+            msgObj = messageHandler.parseIncomingMessage(message, this.enable_compression);
         } catch (ex) {
             self.emit('error', ex);
             return;
@@ -139,7 +141,7 @@ ClientConnection.prototype.send = function(msgObj, callback) {
 
     callback = callback || function () {};
 
-    var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
+    var sendBuffer = messageHandler.packOutgoingMessage(msgObj, this.enable_compression);
 
     if (this.udp4) {
         this.udp4.send(sendBuffer, 0, sendBuffer.length, this.remotePort, this.remoteAddress);
@@ -148,8 +150,9 @@ ClientConnection.prototype.send = function(msgObj, callback) {
     }
 
     if (this.tcp) {
-        this.tcp.write(sendBuffer);
-        callback(null, 'sent');
+        this.tcp.write(sendBuffer, undefined, function () {
+            callback(null, 'sent');
+        });
         return;
     }
 

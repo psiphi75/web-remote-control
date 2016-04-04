@@ -23,6 +23,22 @@
 
 'use strict';
 
+
+//
+//        Imports
+//
+
+
+var test = require('tape');
+var wrc = require('../index');
+
+
+//
+//        Configuration
+//
+
+var channel1 = 'channel-1';
+
 // Allows us to change the tests (UDP vs TCP) from the command line
 var UDP = true;
 var TCP = false;
@@ -31,127 +47,29 @@ if (process.env.PROTOCOL && process.env.PROTOCOL.toUpperCase() === 'TCP') {
     TCP = true;
 }
 
-// Allows us to test against a remote proxy, from the command line
-var PROXY_ADDRESS = 'localhost';
-var isLocalProxy = true;
-if (process.env.PROXY_ADDRESS) {
-    isLocalProxy = false;
-    PROXY_ADDRESS = process.env.PROXY_ADDRESS;
+// Enable detailed logging
+var ENABLE_LOGGING = false;
+var logging;
+if (!ENABLE_LOGGING) {
+    logging = function() {};
 }
 
-var test = require('tape');
 
-var messageHandler = require('../src/messageHandler');
-var wrc = require('../index');
-
-var channel1 = 'channel-1';
+//
+//        Tests
+//
 
 
-if (isLocalProxy) {
-
-    // This is not dependant on local, but we don't need to over test it.
-    test('Compression works', function(t) {
-        t.plan(1);
-
-        var obj = { type: 'ping', seq: 1234, uid: '123422', data: '1453020903937' };
-
-        t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
-
-    });
-
-    var localProxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP, socketio: false });
-    var localToy;
-    var localController = wrc.createController({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
-
-    test('Test Proxy can be created and a toy can be registered', function(t) {
-
-        t.plan(4);
-        var tests = 0;
-
-        var uid1;
-        var uid2;
-
-        localProxy.on('register', function fn(msgObj) {
-            t.equal(msgObj.type, 'register', 'message is correct type');
-            uid1 = msgObj.uid;
-            t.true(typeof msgObj.uid === 'string', 'the uid is the correct type');
-
-            tests += 2;
-            wrapUp();
-
-            localProxy.removeListener('register', fn);
-        });
-
-        localToy = wrc.createToy({ channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP });
-
-        localToy.on('register', function fnreg(msgUid) {
-            t.true(typeof msgUid === 'string', 'the uid is the correct type');
-            uid2 = msgUid;
-
-            tests += 1;
-            wrapUp();
-
-            localToy.removeListener('register', fnreg);
-        });
-
-        function wrapUp() {
-            if (tests === 3) {
-                t.equal(uid1, uid2, 'The UIDs are the same');
-                t.end();
-            }
-        }
-
-    });
-
-    test('Test localController can send commands to localProxy', function(t) {
-
-        t.plan(2);
-
-        var cmdTxt = 'simon say\'s do this';
-
-        localProxy.on('command', function fn (cmdObj) {
-            t.equal(cmdObj.type, 'command', 'message is correct type');
-            t.equal(cmdObj.data, cmdTxt, 'command was correct');
-            t.end();
-
-            localProxy.removeListener('command', fn);
-
-        });
-
-        localController.command(cmdTxt);
-
-    });
-
-    test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-registers', function(t) {
-
-        t.plan(2);
-
-        // "Crash" the proxy - we simulate by removing the toy from DevMan
-        localProxy.devices.remove(localToy.uid);
-
-        localToy.on('error', function fn1 () {
-            t.pass('proxy sent an error response, as expected');
-            localToy.removeListener('error', fn1);
-        });
-
-        localToy.on('register', function fn2 (msgUid) {
-            t.true(typeof msgUid === 'string', '... and we re-registered okay');
-            t.end();
-
-            localToy.removeListener('register', fn2);
-        });
-
-        localToy.ping();
-
-    });
-
-}  // end of isLocalProxy
-
-
-var options = { channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, tcp: TCP, proxyUrl: PROXY_ADDRESS };
+var options = {
+    channel: channel1,
+    log: logging,
+    keepalive: 0,
+    udp4: UDP,
+    tcp: TCP,
+    proxyUrl: process.env.PROXY_ADDRESS
+};
 var controller = wrc.createController(options);
 var toy = wrc.createToy(options);
-
 
 // Wait until both devices are registered
 var countRegs = 0;
@@ -160,11 +78,12 @@ toy.on('register', regCounter);
 function regCounter () {
     countRegs += 1;
     if (countRegs === 2) {
-        startRemainingTests();
+        startTests();
     }
 }
 
-function startRemainingTests () {
+function startTests () {
+
 
     test('Test we can ping the Proxy and get a result', function(t) {
 
@@ -245,15 +164,6 @@ function startRemainingTests () {
     test.onFinish(function () {
 
         setTimeout(function () {
-            if (localProxy) {
-                localProxy.close();
-            }
-            if (localToy) {
-                localToy.close();
-            }
-            if (localController) {
-                localController.close();
-            }
 
             toy.close();
             controller.close();

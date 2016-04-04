@@ -165,9 +165,10 @@ function handleError(err) {
 
 function handleMessage(message, socketInfo) {
 
+    var enable_compression = socketInfo.protocol === 'udp4';
     var msgObj;
     try {
-        msgObj = messageHandler.parseIncomingMessage(message);
+        msgObj = messageHandler.parseIncomingMessage(message, enable_compression);
     } catch (ex) {
         this.emit('error', ex);
         return;
@@ -211,7 +212,8 @@ ServerConnection.prototype.closeAll = function() {
 ServerConnection.prototype.send = function(msgObj) {
 
     var socketInfo = msgObj.socket;
-    var msgComp = messageHandler.packOutgoingMessage(msgObj);
+    var enable_compression = socketInfo.protocol === 'udp4';
+    var msgComp = messageHandler.packOutgoingMessage(msgObj, enable_compression);
 
     if (socketInfo.protocol === 'udp4') {
         this.udp4.send(msgComp, 0, msgComp.length, socketInfo.port, socketInfo.address);

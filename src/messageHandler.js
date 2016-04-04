@@ -23,6 +23,8 @@
 
 'use strict';
 
+var mySmaz = require('./MySmaz');
+
 /**
  * Parse an incoming message and ensure it's valid.  Convert it to an object that
  * can ben sent to other listeners.
@@ -33,7 +35,7 @@
  * @return {object}          The valid object.
  * @throws Error when the message is invalid.
  */
-exports.parseIncomingMessage = function(message) {
+exports.parseIncomingMessage = function(message, enable_compression) {
 
     if (message.length === 0) {
         // Empty packet arrived, this happens when remote closes connection
@@ -43,7 +45,7 @@ exports.parseIncomingMessage = function(message) {
     var msgObj;
 
     try {
-        msgObj = decompress(message);
+        msgObj = decompress(message, enable_compression);
     } catch (ex) {
         throw new Error('There was an error parsing the incoming message: ' + ex + JSON.stringify(message.toString()));
     }
@@ -82,7 +84,7 @@ exports.parseIncomingMessage = function(message) {
     return msgObj;
 };
 
-exports.packOutgoingMessage = function(msgObj) {
+exports.packOutgoingMessage = function(msgObj, enable_compression) {
 
     var cleanMsgObj = {};
     if (msgObj.hasOwnProperty('type')) {
@@ -97,43 +99,34 @@ exports.packOutgoingMessage = function(msgObj) {
     if (msgObj.hasOwnProperty('uid')) {
         cleanMsgObj.uid = msgObj.uid;
     }
-    return compress(cleanMsgObj);
+    return compress(cleanMsgObj, enable_compression);
 
 };
 
-// TODO: Would be nice to get compression going.  But this did not work nicely.
-// var smaz = require('smaz');
 
-var compress = function(data) {
-    // console.log(1, data);
-    // var str = JSON.stringify(data);
-    // console.log(2, str);
-    // var c = smaz.compress(str);
-    // console.log(3, c);
-    // var compressedData = new Buffer(c);
-    // console.log(4, compressedData.toString());
-    // return compressedData;
+function compress(data, enable_compression) {
 
-    var str = JSON.stringify(data);
+    var result = JSON.stringify(data);
+    result = result + '\n';
 
-    // We use a newline to seperate out TCP messages
-    // FIXME: This looses information.  But do we care?
-    if (str.indexOf('\n') >= 0) {
-        throw new Error('Messages must not have new line characters.');
+    if (enable_compression) {
+        result = mySmaz.compress(result);
     }
-    str = str + '\n';
 
-    var buf = new Buffer(str);
-    return buf;
+    return new Buffer(result);
+}
 
-};
+function decompress(compressedData, enable_compression) {
 
-var decompress = function(compressedData) {
-
-    var buf = compressedData;
-    var str = buf.toString();
+    var str;
+    if (enable_compression) {
+        str = mySmaz.decompress(compressedData);
+    } else {
+        str = compressedData.toString();
+    }
 
     /* socket.io has a tendancy to concatinate messages */
+    // FIXME: This looses information.  But do we care?
     var strArray = str.split('\n');
     var offset = 1;
     if (strArray[strArray.length - 1] === '') {
@@ -141,25 +134,5 @@ var decompress = function(compressedData) {
     }
     str = strArray[strArray.length - offset];
 
-    var data = JSON.parse(str);
-
-    // console.log(4, compressedData.toString());
-    // var c = new Uint8Array(compressedData);
-    // console.log(3, c);
-    // var str = smaz.decompress(c);
-    // console.log(2, str);
-    // var data = JSON.parse(str);
-    // console.log(1, data);
-
-
-    // var result;
-    // try {
-    //     console.log()
-    //     // console.log(smaz.decompress(data).toString())
-    //
-    //     result = JSON.parse(smaz.decompress(new Uint8Array(data)));
-    // } catch (ex) {
-    //     console.error('unable to decompress data');
-    // }
-    return data;
-};
+    return JSON.parse(str);
+}

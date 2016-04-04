@@ -45,6 +45,7 @@ function WebClientConnection(options) {
 }
 util.inherits(WebClientConnection, EventEmitter);
 
+
 /**
  * Set up the UDP listener.
  */
@@ -63,8 +64,6 @@ WebClientConnection.prototype.createProxySocket = function (address, port) {
             message = String.fromCharCode.apply(null, new Uint8Array(message));
         }
         handleMessage.bind(self)(message);
-        // console.log(message)
-        // console.log(messageHandler.parseIncomingMessage(ab2str(message)))
     });
     this.socket.on('disconnect', function() {});
 };
