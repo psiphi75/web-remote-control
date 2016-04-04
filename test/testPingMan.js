@@ -23,11 +23,7 @@
 
 
  var test = require('tape');
- var tapSpec = require('tap-spec');
- test.createStream()
-   .pipe(tapSpec())
-   .pipe(process.stdout);
-   
+
  var PingManager = require('../src/PingManager');
 
  test('Can create a few pings', function(t) {

@@ -40,10 +40,6 @@ if (process.env.PROXY_ADDRESS) {
 }
 
 var test = require('tape');
-var tapSpec = require('tap-spec');
-test.createStream()
-  .pipe(tapSpec())
-  .pipe(process.stdout);
 
 var messageHandler = require('../src/messageHandler');
 var wrc = require('../index');
@@ -62,7 +58,6 @@ if (isLocalProxy) {
         t.deepEqual(messageHandler.parseIncomingMessage(messageHandler.packOutgoingMessage(obj)), obj, 'Can compress and decompress');
 
     });
-
 
     var localProxy = wrc.createProxy({log: function(){}, udp4: UDP, tcp: TCP, socketio: false });
     var localToy;
@@ -157,6 +152,7 @@ var options = { channel: channel1, log: function(){}, keepalive: 0, udp4: UDP, t
 var controller = wrc.createController(options);
 var toy = wrc.createToy(options);
 
+
 // Wait until both devices are registered
 var countRegs = 0;
 controller.on('register', regCounter);
@@ -249,12 +245,14 @@ function startRemainingTests () {
     test.onFinish(function () {
 
         setTimeout(function () {
-
-            if (isLocalProxy) {
+            if (localProxy) {
                 localProxy.close();
+            }
+            if (localToy) {
                 localToy.close();
+            }
+            if (localController) {
                 localController.close();
-
             }
 
             toy.close();
