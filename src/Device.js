@@ -231,7 +231,7 @@ Device.prototype.close = function() {
     if (this.timeoutHandle) {
         clearTimeout(this.timeoutHandle);
     }
-    if (this.connection) {
+    if (this.connection && typeof this.connection.closeAll === 'function') {
         this.connection.closeAll();
     }
     this.removeAllListeners();

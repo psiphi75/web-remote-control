@@ -1,95 +1,379 @@
+/*********************************************************************
+ *                                                                   *
+ *   Copyright 2016 Simon M. Werner                                  *
+ *                                                                   *
+ *   Licensed to the Apache Software Foundation (ASF) under one      *
+ *   or more contributor license agreements.  See the NOTICE file    *
+ *   distributed with this work for additional information           *
+ *   regarding copyright ownership.  The ASF licenses this file      *
+ *   to you under the Apache License, Version 2.0 (the               *
+ *   "License"); you may not use this file except in compliance      *
+ *   with the License.  You may obtain a copy of the License at      *
+ *                                                                   *
+ *      http://www.apache.org/licenses/LICENSE-2.0                   *
+ *                                                                   *
+ *   Unless required by applicable law or agreed to in writing,      *
+ *   software distributed under the License is distributed on an     *
+ *   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY          *
+ *   KIND, either express or implied.  See the License for the       *
+ *   specific language governing permissions and limitations         *
+ *   under the License.                                              *
+ *                                                                   *
+ *********************************************************************/
+
+/* eslint-env jquery */
+
 // Based on code from: http://www.inkfood.com/mobile-accelerometer-input/
 
-
-// TODO: The ball does not reach the limits of the screen (in Firefox).
-// TODO: Tidy code
-// TODO: Only simple status update given.  Could make it neater.
-
-var NETWORK_UPDATE_FREQ = 15;      // How many times per second to update the network (send commands)
-var BROWSER_UPDATE_FREQ = 30;     // How many times per second to refresh the browser screen
+var NETWORK_UPDATE_FREQ = 15; // How many times per second to update the network (send commands)
+var BROWSER_UPDATE_FREQ = 30; // How many times per second to refresh the browser screen
 
 var Device = require('Device');
-var controller = new Device({ deviceType: 'controller' }, require('WebClientConnection'));
+var WebClientConnection = require('WebClientConnection');
+var controller;
+
+var connectionStatus = 'notconnected';
 
 
-controller.connection.socket.on('connect', function() {
-    controller.on('register', function() {
-        document.getElementById('connection').innerHTML = '<p>Registered on channel: ' + controller.channel + ' with UID: ' + controller.uid + '</p>';
-        controller.ping(function(t) {
-            console.log('pinged: ', t);
-        });
-        controller.on('status', function(status) {
+/*****************************************************************************
+ *                                                                           *
+ *                               Logging Functions                           *
+ *                                                                           *
+ *****************************************************************************/
 
-            if (typeof status === 'object') {
-                var html = '';
-                html += '<ul>\n';
-                html += '    <li><b>Gyro:</b> ';
-                html += '        <ul>';
-                html += '            <li>x: ' + status.gyro.x + '</li>';
-                html += '            <li>y: ' + status.gyro.y + '</li>';
-                html += '            <li>z: ' + status.gyro.z + '</li>';
-                html += '        </ul>';
-                html += '    </li>';
-                html += '    <li><b>Accel:</b> ';
-                html += '        <ul>';
-                html += '            <li>x: ' + status.accel.x + '</li>';
-                html += '            <li>y: ' + status.accel.y + '</li>';
-                html += '            <li>z: ' + status.accel.z + '</li>';
-                html += '        </ul>';
-                html += '    </li>';
-                html += '    <li><b>Compass (heading):</b> ' + status.compass + '</li>';
-                html += '    <li><b>Compass (x, y, z):</b> ';
-                html += '        <ul>';
-                html += '            <li>x: ' + status.compassRaw.x + '</li>';
-                html += '            <li>y: ' + status.compassRaw.y + '</li>';
-                html += '            <li>z: ' + status.compassRaw.z + '</li>';
-                html += '        </ul>';
-                html += '    </li>';
-                if (status.gps) {
-                    html += '    <li><b>GPS:</b> ';
-                    html += '        <ul>';
-                    html += '            <li>x: ' + status.gps.latitude + '</li>';
-                    html += '            <li>y: ' + status.gps.longitude + '</li>';
-                    html += '        </ul>';
-                    html += '    </li>';
-                }
-                html += '</ul>';
-            } else {
-                html = '<p>' + status + '</p>';
-            }
-            document.getElementById('status').innerHTML = html;
 
-            console.log('Controller: Toy said: ', status);
-        });
-        controller.on('error', function(err) {
-            document.getElementById('connection').innerHTML = '<p>' + err + '</p>';
-            console.log('There was an error: ', err);
-        });
+var COL_GREY = '#555';
+var COL_RED = '#d55';
 
-        var lastX = -100;
-        var lastY = -100;
-        setInterval(function() {
-            var thisX = Math.round(offset.x * 100) / 100;
-            var thisY = Math.round(offset.y * 100) / 100;
-            if (lastX === thisX && thisY === lastY) {
+function logMessage(message) {
+    writeToLogger(message, COL_GREY);
+}
+
+function logError(message) {
+    writeToLogger(message, COL_RED);
+}
+
+function writeToLogger(message, colour) {
+    var el = $('#log>.card-block');
+    el.append('<pre><code style="color:' + colour + '">' + message + '</code></pre>');
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                               Channel Functions                           *
+ *                                                                           *
+ *****************************************************************************/
+
+
+/**
+ * Update the on-screen connection status
+ * @param  {string} status The new status
+ */
+function updateConnection(status) {
+    var newClass;
+    var message;
+    switch (status) {
+        case 'notconnected':
+            newClass = 'alert-danger';
+            message = 'Not Connected';
+            connectionStatus = status;
+            break;
+        case 'connecting':
+            newClass = 'alert-warning';
+            message = 'Connecting';
+            connectionStatus = status;
+            break;
+        case 'connected':
+            newClass = 'alert-success';
+            message = 'Connected';
+            connectionStatus = status;
+            break;
+        case 'disconnected':
+            newClass = 'alert-warning';
+            message = 'Disconnected';
+            connectionStatus = status;
+            break;
+        default:
+            newClass = 'alert-info';
+            message = 'Invalid status: ' + status;
+    }
+    var connEl = $('#txt-connection');
+
+    connEl.parent().removeClass().addClass('alert ' + newClass);
+    connEl.text(message);
+    logMessage(message);
+}
+
+function setChannel(channel) {
+    if (connectionStatus === 'connected' && controller && channel === controller.channel) {
+        logMessage('Already connected');
+        return;
+    }
+
+    //
+    // Close the old controller and start the new
+    //
+    if (controller) {
+        controller.close();
+    }
+    startController(channel);
+
+    //
+    // Save the channel to local storage.
+    //
+    localStorage.setItem('channel', channel);
+}
+
+function restoreChannel() {
+    var channel = localStorage.getItem('channel');
+    if (typeof channel === 'string') {
+        setChannel(channel);
+        $('#txt-channel').val(channel);
+    }
+}
+
+function setChannelFromTextBox() {
+    var channel = $('#txt-channel').val();
+    if (typeof channel !== 'string' || channel === '') {
+        logError('Need to enter a value for the channel.');
+        return;
+    }
+    setChannel(channel);
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                            Controller Functions                           *
+ *                                                                           *
+ *****************************************************************************/
+
+function displayStatus(status, type) {
+
+    if (!status[type]) {
+        return;
+    }
+
+    var el = $('#' + type);
+    if (!el) {
+        logMessage('Unable to update: ' + type);
+        return;
+    }
+
+    var subEls = el.find('li');
+    Object.keys(status[type]).forEach(function(key) {
+        findAndUpdateLabel(status[type][key], key);
+    });
+
+    function findAndUpdateLabel(value, dim) {
+        for (var i = 0; i < subEls.length; i += 1) {
+            var elementStr = subEls[i].innerText.trim();
+            if (elementStr.indexOf(dim) === 0) {
+                subEls[i].innerHTML = dim + ': <span class="label label-default label-pill pull-xs-right">' + value + '</span>';
                 return;
             }
-            lastX = thisX;
-            lastY = thisY;
-            controller.command({
-                action: 'move',
-                x: thisX,
-                y: thisY
+        }
+
+    }
+}
+
+function startController(channel) {
+
+    controller = new Device({
+        deviceType: 'controller',
+        channel: channel
+    }, WebClientConnection);
+
+    controller.connection.socket.on('connect', function() {
+
+        updateConnection('connecting');
+
+        controller.on('register', function() {
+
+            updateConnection('connected');
+
+            controller.ping(function(t) {
+                logMessage('Ping: ' + t / 1000);
             });
-        }, 1000 / NETWORK_UPDATE_FREQ);
+
+            controller.on('status', function(status) {
+
+                if (typeof status === 'object') {
+                    displayStatus(status, 'gyro');
+                    displayStatus(status, 'compassRaw');
+                    displayStatus(status, 'accel');
+                    displayStatus(status, 'gps');
+                }
+
+            });
+            controller.on('error', function(err) {
+                logError('There was an error: ', err);
+            });
+
+            var lastX = -100;
+            var lastY = -100;
+            setInterval(function() {
+                var thisX = Math.round(offset.x * 100) / 100;
+                var thisY = Math.round(offset.y * 100) / 100;
+                if (lastX === thisX && thisY === lastY) {
+                    return;
+                }
+                lastX = thisX;
+                lastY = thisY;
+
+                controller.command({
+                    action: 'move',
+                    x: calibrate(thisX, XMIN, XCNTR, XMAX),
+                    y: calibrate(thisY, YMIN, YCNTR, YMAX)
+                });
+            }, 1000 / NETWORK_UPDATE_FREQ);
+        });
     });
-});
+}
+
+var XMIN = -1;
+var XCNTR = 0;
+var XMAX = 1;
+var YMIN = -1;
+var YCNTR = 0;
+var YMAX = 1;
+
+/**
+ * Calibration function - uses simple formula y = m * x + c.
+ * @param  {number} val  The number to calibrate.
+ * @param  {number} min  The minimum range of the value.
+ * @param  {number} cntr The mid point of the number.
+ * @param  {number} max  The maximum value in the range.
+ * @return {number}      The calibrated value.
+ */
+function calibrate(val, min, cntr, max) {
+    if (val <= -1) return min;
+    if (val >= 1) return max;
+    if (val < 0) {
+        return (cntr - min) * val + cntr;
+    } else {
+        return (max - cntr) * val + cntr;
+    }
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                     Config Button Handling Functions                      *
+ *                                                                           *
+ *****************************************************************************/
+
+/**
+ * On start we restore the config values into the modal.
+ */
+function restoreConfigValues() {
+
+    XMIN = setCalibrationConfig('x-min') || -1;
+    XCNTR = setCalibrationConfig('x-center') || 0;
+    XMAX = setCalibrationConfig('x-max') || 1;
+    YMIN = setCalibrationConfig('y-min') || -1;
+    YCNTR = setCalibrationConfig('y-center') || 0;
+    YMAX = setCalibrationConfig('y-max') || 1;
+
+    function setCalibrationConfig(label) {
+        var storedValue = localStorage.getItem(label);
+        if (storedValue) {
+
+            // Make sure we have extracted a number
+            var num = parseFloat(storedValue);
+            if (isNaN(num)) {
+                localStorage.removeItem(label);
+                return null;
+            }
+
+            // Set the model configuration values
+            var el = $('#' + label + ' input');
+            el.val(num);
+            return num;
+        } else {
+            return null;
+        }
+
+    }
+}
+
+var cfgBtnSetIntervals = {};
+
+function handleConfigButtonClick(e) {
+
+    var cfgUpdateRate = 100; // How frequently we update the config value
+
+    var button = $(e.target);
+    var label = e.target.parentElement.id;
+    var splitLabel = label.split('-');
+    var dim = splitLabel[0];
+    var txtElement = $('#' + label + ' input');
+
+    if (isChangeButton()) {
+        changeConfigButtonToSet();
+    } else {
+        changeConfigButtonToChange();
+    }
+
+    function changeConfigButtonToSet() {
+
+        //
+        // Change the button to 'Set'
+        //
+        button.removeClass('btn-primary').addClass('btn-warning');
+        button.text('Set');
+
+        //
+        // Set up realtime updates
+        //
+        if (cfgBtnSetIntervals[label]) {
+            console.error('Did not expect to get here.');
+        }
+        cfgBtnSetIntervals[label] = setInterval(function updateConfigText() {
+            var val = offset[dim];
+            txtElement.val(val);
+        }, cfgUpdateRate);
+    }
+
+    function changeConfigButtonToChange() {
+
+        //
+        // Change the button and remove timeout
+        //
+        button.removeClass('btn-warning').addClass('btn-primary');
+        button.text('Change');
+        clearTimeout(cfgBtnSetIntervals[label]);
+        delete cfgBtnSetIntervals[label];
+
+        //
+        // Save the settings
+        //
+        var value = parseFloat(txtElement.val());
+        localStorage.setItem(label, value);
+
+        // There are more efficient ways of doing the following:
+        restoreConfigValues();
+    }
+
+    function isChangeButton() {
+        return button.text() === 'Change';
+    }
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                              Animation functions                          *
+ *                                                                           *
+ *****************************************************************************/
+
 
 if (!window.requestAnimationFrame) {
     window.requestAnimationFrame = createAnimationFrame();
 }
 
-function createAnimationFrame () {
+function createAnimationFrame() {
 
     return window.webkitRequestAnimationFrame ||
         window.mozRequestAnimationFrame ||
@@ -101,6 +385,14 @@ function createAnimationFrame () {
 
 }
 
+
+/*****************************************************************************
+ *                                                                           *
+ *                                   Initailise                              *
+ *                                                                           *
+ *****************************************************************************/
+
+
 var ball;
 var w;
 var h;
@@ -109,54 +401,68 @@ var offset;
 
 // This a workaround for an old Firefox bug.  See:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=771575
-function init() {  // eslint-disable-line no-unused-vars
+function init() { // eslint-disable-line no-unused-vars
     setTimeout(delayedInit, 20);
-}
 
-function delayedInit () {
-    document.getElementById('connection').innerHTML = '<p>Connecting</p>';
+    // Restore configuration settings
+    restoreChannel();
+    restoreConfigValues();
 
-    ball = document.getElementById('ball');
-    // TODO: It would be nice to have this full screen
-    // document.requestFullscreen()
+    // Channel change button.
+    $('#btn-change-channel').on('click', setChannelFromTextBox);
 
-    w = window.innerWidth;
-    h = window.innerHeight;
+    // Configuration form - any of the submit events.  This will
+    // capture all the button clicks.
+    $('.form-inline>button').on('click', handleConfigButtonClick);
 
-    ball.style.left = (w / 2) - 50 + 'px';
-    ball.style.top = (h / 2) - 50 + 'px';
-    center = {
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2
-    };
+    function delayedInit() {
 
-    offset = {
-        x: 0,
-        y: 0
-    };
-    ball.position = {
-        x: center.x,
-        y: center.y
-    };
+        ball = document.getElementById('ball');
 
-    if (window.DeviceOrientationEvent) {
+        // TODO: It would be nice to have this full screen
+        // document.requestFullscreen()
 
-        window.addEventListener('deviceorientation', function(event) {
+        w = window.innerWidth;
+        h = window.innerHeight;
 
-            offset = {
-                x: scale(event.gamma, 70),
-                y: scale(event.beta, 70)
-            };
-            ball.position.x = center.x + offset.x * center.x;
-            ball.position.y = center.y + offset.y * center.x;
+        ball.style.left = (w / 2) - 50 + 'px';
+        ball.style.top = (h / 2) - 50 + 'px';
+        center = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2
+        };
 
-        });
+        offset = {
+            x: 0,
+            y: 0
+        };
+        ball.position = {
+            x: center.x,
+            y: center.y
+        };
 
-    } else {
-        window.alert('Could not find accelerometer');  // eslint-disable-line
+        if (window.DeviceOrientationEvent) {
+
+            window.addEventListener('deviceorientation', function(event) {
+
+                // FIXME: When the device is tipped to vertical, then just a bit more (upside down)
+                // these numbers will flip around.
+                offset = {
+                    x: scale(event.gamma, 70),
+                    y: scale(event.beta, 70)
+                };
+                ball.position.x = center.x + offset.x * center.x;
+                ball.position.y = center.y + offset.y * center.x;
+
+            });
+
+        } else {
+            window.alert('Could not find accelerometer'); // eslint-disable-line
+        }
+
+        update();
     }
 
-    update();
 }
 
 
@@ -176,9 +482,6 @@ function update() {
 
     ball.style.top = ball.position.y + 'px';
     ball.style.left = ball.position.x + 'px';
-
-    document.getElementById('position').innerHTML = '<p> x = ' + offset.x + '</p>';
-    document.getElementById('position').innerHTML += '<p> y = ' + offset.y + '</p>';
 
     setTimeout(update, 1000 / BROWSER_UPDATE_FREQ); //KEEP ANIMATING
 }

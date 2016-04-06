@@ -1,18 +1,237 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
+
 <head>
+    <!-- Required meta tags always come first -->
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+
     <title>Web Controller</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
-    <script src="./web-remote-control.js"></script>
-    <script src="script.js"></script>
+
 </head>
 
 <body onload="init()">
-    <div id="ball"></div>
-    Connection: <div id="connection"><p>Not connected</p></div>
-    Toy Status: <div id="status"></div>
-    Position: <div id="position"></div>
+
+    <div class="container">
+
+        <!-- 1st Row -->
+        <div class="row row-height-small">
+
+            <!-- Channel selector -->
+            <div id="chan" class="col-xs-6">
+                <div class="input-group">
+                    <input id="txt-channel" type="text" class="form-control" placeholder="Channel">
+                    <span class="input-group-btn">
+                        <button id="btn-change-channel" class="btn btn-secondary" type="button">Go!</button>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Connection Status button -->
+            <div id="connection" class="col-xs-6 vcenter">
+                <div class="alert alert-danger" role="alert">
+                    <h5 id="txt-connection">Not connected</h5>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 2nd Row -->
+        <div class="row row-height-large toy-stat">
+            <div id="accel" class="col-xs-4">
+                <div class="card card-block">
+                    <h6 class="card-title">Accelerometer</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            x:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            y:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            z:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div id="gyro" class="col-xs-4">
+                <div class="card card-block">
+                    <h6 class="card-title">Gyroscope</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            x:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            y:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            z:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div id="compassRaw" class="col-xs-4">
+                <div class="card card-block">
+                    <h6 class="card-title">Compass</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            x:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            y:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            z:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="row row-height-medium toy-stat">
+            <div id="gps" class="col-xs-4">
+                <div class="card card-block">
+                    <h6 class="card-title">GPS</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            lat:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                        <li class="list-group-item">
+                            long:
+                            <span class="label label-default label-pill pull-xs-right">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div id="log" class="col-xs-8">
+                <div class="card card-block">
+
+                    <!-- example html
+                    <pre><code>Some Sample 1</code></pre>
+                    <pre><code>Some Sample 2</code></pre>
+                    -->
+
+                </div>
+            </div>
+        </div>
+
+
+        <!-- The RC frame -->
+        <div class="row row-height-50pc">
+            <div id="controller" class="col-xs-1"></div>
+            <div id="ball"></div>
+        </div>
+
+
+        <!-- The floating config button -->
+        <button class="btn btn-primary" data-toggle="modal" data-target="#configModal">
+            <p>...<span class="glyphicon glyphicon-option-vertical"></span></p>
+        </button>
+
+        <!-- The config modal -->
+        <div id="configModal" class="modal fade">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        <h4 class="modal-title">Configuration</h4>
+                    </div>
+                    <div class="modal-body">
+
+                        <div class="row">
+
+                            <h5>Servo 1:</h5>
+
+                            <form id="x-min" class="form-inline">
+                                <div class="form-group">
+                                    <label for="x-min">Min</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                            <form id="x-center" class="form-inline">
+                                <div class="form-group">
+                                    <label for="x-center">Center</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                            <form id="x-max" class="form-inline">
+                                <div class="form-group">
+                                    <label for="x-max">Max</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                            <h5>Servo 2:</h5>
+
+                            <form id="y-min" class="form-inline">
+                                <div class="form-group">
+                                    <label for="y-min">Min</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                            <form id="y-center" class="form-inline">
+                                <div class="form-group">
+                                    <label for="y-center">Center</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                            <form id="y-max" class="form-inline">
+                                <div class="form-group">
+                                    <label for="y-max">Max</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Change</button>
+                            </form>
+
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+                <!-- /.modal-content -->
+            </div>
+            <!-- /.modal-dialog -->
+        </div>
+        <!-- /.modal -->
+
+    </div>
+
+    <!-- jQuery first, then Bootstrap JS. -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha384-vZ2WRJMwsjRMW/8U7i6PWi6AlO1L79snBrmgiDpgIWJ82z8eA5lenwvxbMV1PAh7" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
+    <script src="./web-remote-control.js"></script>
+    <script src="script.js"></script>
+
 </body>
+
 </html>

@@ -1,14 +1,100 @@
 body {
-    padding: 0;
-    margin: 0;
-    background-color: #99f;
+    background-color: #ccc;
 }
 #ball {
     -webkit-transition: all;
     transition: all;
     position: absolute;
-    width: 120px;
-    height: 120px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: #226;
+}
+#connection {
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+    float: none;
+}
+
+.list-group-item {
+    padding: .175rem 0.25rem;
+}
+.label-pill {
+    border-radius: 0.6rem;
+    width: 50px;
+}
+.label {
+    padding: .5em;
+}
+.card-title {
+    text-align: center;
+}
+.card-block {
+    padding: 5px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+.row {
+    margin-top: 0px;
+    margin-bottom: 0px;
+    margin-right: 0;
+    margin-left: 0;
+}
+.toy-stat .col-xs-6,
+.toy-stat .col-xs-4,
+.toy-stat .col-xs-8 {
+   padding: 2px;
+}
+.container {
+    padding: 0.1em;
+}
+#log {
+    height: 100%;
+}
+#log .card-block {
+    height: 100%;
+    resize: none;
+    overflow-y: scroll;
+}
+#log pre {
+    display: block;
+    margin-top: 0;
+    margin-bottom: 0;
+    font-size: 11px;
+    line-height: 1.2;
+    font-family: monospace;
+    font-weight: normal;
+}
+#config-btn {
+    position: fixed;
+    height: 35px;
+    bottom: 10px;
+    right: 10px;
+}
+.row-height-50pc {
+    height: 50vh;
+}
+.row-height-large {
+    height: 19vh;
+}
+.row-height-medium {
+    height: 14vh;
+}
+.row-height-small {
+    height: 8vh;
+}
+
+/*
+ * Modal configuration form
+ */
+.modal-open h5 {
+    padding-top: 10px;
+}
+.modal-open .form-inline {
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+.modal-open .form-group label {
+    width: 70px;
 }
