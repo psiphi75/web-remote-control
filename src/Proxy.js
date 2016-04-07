@@ -98,7 +98,7 @@ Prox.prototype.registerDevice = function(msgObj) {
         return;
     }
 
-    var uid = this.devices.add(deviceType, channel, msgObj.socket);
+    var uid = this.devices.add(deviceType, channel, msgObj.socket, msgObj.seq);
     msgObj.uid = uid;
     msgObj.data = uid;
 
@@ -114,7 +114,7 @@ Prox.prototype.registerDevice = function(msgObj) {
  */
 Prox.prototype.respondToPing = function(msgObj) {
 
-    var device = this.devices.update(msgObj.uid, msgObj.socket);
+    var device = this.devices.update(msgObj.uid, msgObj.socket, msgObj.seq);
 
     if (!device) {
         this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
@@ -158,13 +158,21 @@ Prox.prototype.forwardStatus = function(msgObj) {
 Prox.prototype.forward = function(forwardToType, msgObj) {
 
     var self = this;
-    var remoteDevice = this.devices.update(msgObj.uid, msgObj.socket);
-
+    var remoteDevice = this.devices.get(msgObj.uid);
     if (!remoteDevice) {
         this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
         console.error('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
         return;
     }
+
+    // Drop the packet if it's not the latest (highest seqNum)
+    if (!this.devices.isLatestSeqNum(msgObj.uid, msgObj.seq)) {
+        this.log('Dropped a packet from: ' + msgObj.uid);
+        return;
+    }
+
+    this.devices.update(msgObj.uid, msgObj.socket, msgObj.seq);
+
     var uidList = this.devices.getAll(forwardToType, remoteDevice.channel);
 
     uidList.forEach(function(uid) {

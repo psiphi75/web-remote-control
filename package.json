@@ -16,7 +16,7 @@
     "url": "https://github.com/psiphi75/web-remote-control/issues"
   },
   "scripts": {
-    "test": "./test/runAll.sh",
+    "test": "./tests/runAll.sh",
     "prepublish": "cd scripts && ./build.sh && cd .. "
   },
   "keywords": [

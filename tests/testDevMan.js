@@ -36,14 +36,14 @@ test('Can create a list of devices and add many', function(t) {
 
     t.plan(6);
 
-    uid2 = devices.add(deviceType, channel1, 'b');
-    uid5 = devices.add(deviceType, channel2, 'e');
+    uid2 = devices.add(deviceType, channel1, 'b', 1);
+    uid5 = devices.add(deviceType, channel2, 'e', 1);
 
-    t.true(typeof devices.add(deviceType, channel1, 'a') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel1, 'a', 1) === 'string', 'added a toy');
     t.true(typeof uid2 === 'string', 'added a toy');
-    t.true(typeof devices.add(deviceType, channel1, 'c') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel1, 'c', 1) === 'string', 'added a toy');
 
-    t.true(typeof devices.add(deviceType, channel2, 'd') === 'string', 'added a toy');
+    t.true(typeof devices.add(deviceType, channel2, 'd', 1) === 'string', 'added a toy');
     t.true(typeof uid5 === 'string', 'added a toy');
 
     t.equal(devices.add(), undefined, 'must pass parameters to add');
@@ -60,12 +60,14 @@ test('Can retreive the toys', function(t) {
     t.deepEqual(devices.get(uid2), {
         deviceType: deviceType,
         channel: channel1,
-        socket: 'b'
+        socket: 'b',
+        seqNum: 1
     });
     t.deepEqual(devices.get(uid5), {
         deviceType: deviceType,
         channel: channel2,
-        socket: 'e'
+        socket: 'e',
+        seqNum: 1
     });
 
     t.end();
@@ -94,8 +96,24 @@ test('Can update a device', function(t) {
     t.deepEqual(devices.get(uid5), {
         deviceType: deviceType,
         channel: channel2,
-        socket: 'x'
+        socket: 'x',
+        seqNum: 3005
     }, 'device updates correctly');
+
+    t.end();
+
+});
+
+
+test('Sequence number checks', function(t) {
+
+    t.plan(2);
+
+    devices.update(uid5, 'x', 3005);
+    t.ok(devices.isLatestSeqNum(uid5, 3006), 'Sequence numbers increment okay.');
+
+    devices.update(uid5, 'x', 3006);
+    t.notOk(devices.isLatestSeqNum(uid5, 3005), 'Old Sequence numbers fail.');
 
     t.end();
 

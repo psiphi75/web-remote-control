@@ -55,9 +55,9 @@ var channel1 = 'channel-1';
 //
 
 
-var localProxy = wrc.createProxy({log: logging, udp4: UDP, tcp: TCP, socketio: false });
-var localToy;
-var localController;
+var proxy = wrc.createProxy({log: logging, udp4: UDP, tcp: TCP, socketio: false });
+var toy;
+var controller;
 
 test('Test Proxy can be created and a toy can be registered', function(t) {
 
@@ -67,7 +67,7 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
     var uid1;
     var uid2;
 
-    localProxy.on('register', function fn(msgObj) {
+    proxy.on('register', function fn(msgObj) {
         t.equal(msgObj.type, 'register', 'message is correct type');
         uid1 = msgObj.uid;
         t.true(typeof msgObj.uid === 'string', 'the uid is the correct type');
@@ -75,19 +75,19 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
         tests += 2;
         wrapUp();
 
-        localProxy.removeListener('register', fn);
+        proxy.removeListener('register', fn);
     });
 
-    localToy = wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+    toy = wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
 
-    localToy.on('register', function fnReg(msgUid) {
+    toy.on('register', function fnReg(msgUid) {
         t.true(typeof msgUid === 'string', 'the uid is the correct type');
         uid2 = msgUid;
 
         tests += 1;
         wrapUp();
 
-        localToy.removeListener('register', fnReg);
+        toy.removeListener('register', fnReg);
     });
 
     function wrapUp() {
@@ -99,25 +99,24 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
 
 });
 
-test('Test localController can send commands to localProxy', function(t) {
+test('Test controller can send commands to proxy', function(t) {
 
     t.plan(2);
 
     var cmdTxt = 'simon say\'s do this';
 
-    localProxy.on('command', function fn (cmdObj) {
+    proxy.on('command', function fn (cmdObj) {
         t.equal(cmdObj.type, 'command', 'message is correct type');
         t.equal(cmdObj.data, cmdTxt, 'command was correct');
         t.end();
 
-        localProxy.removeListener('command', fn);
-
+        proxy.removeListener('command', fn);
     });
 
-    localController = wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
-    localController.on('register', function fnReg() {
-        localController.command(cmdTxt);
-        localController.removeListener('command', fnReg);
+    controller = wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+    controller.on('register', function fnReg() {
+        controller.command(cmdTxt);
+        controller.removeListener('command', fnReg);
     });
 
 });
@@ -127,21 +126,102 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
     t.plan(2);
 
     // "Crash" the proxy - we simulate by removing the toy from DevMan
-    localProxy.devices.remove(localToy.uid);
+    proxy.devices.remove(toy.uid);
 
-    localToy.on('error', function fn1 () {
+    toy.on('error', function fn1 () {
         t.pass('proxy sent an error response, as expected');
-        localToy.removeListener('error', fn1);
+        toy.removeListener('error', fn1);
     });
 
-    localToy.on('register', function fn2 (msgUid) {
+    toy.on('register', function fn2 (msgUid) {
         t.true(typeof msgUid === 'string', '... and we re-registered okay');
         t.end();
 
-        localToy.removeListener('register', fn2);
+        toy.removeListener('register', fn2);
     });
 
-    localToy.ping();
+    toy.ping();
+
+});
+
+
+test('The sequence numbers are handled and passed from device to toy', function(t) {
+
+    // Seq Plan, item '1003' should be dropped by proxy and not heard by controller.
+    var seqPlan = [1001, 1002, 1004, 1003, 1005];
+    var seqPlanCnt = 0;
+
+    toy.on('command', fnToy);
+    controller.on('status', fnCtrlr);
+    controller.command('start');
+
+    toy.mySeqNum = seqPlan[seqPlanCnt];
+
+    // Handle all commands
+    function fnToy (cmdObj) {
+
+        if (seqPlanCnt >= seqPlan.length) {
+            wrapUp();
+            return;
+        }
+
+        switch (seqPlanCnt) {
+
+            case 0:
+            case 1:
+            case 2:
+            case 4:
+                t.pass('Toy sequence number increments okay.');
+                break;
+
+            case 3:
+                t.equal(cmdObj, 'dummy', 'Dummy command passed through okay.');
+                break;
+
+            default:
+                t.fail('We really should never reach this.');
+        }
+
+        // Fabricate the sequence number to simulate slow packets
+        toy.mySeqNum = seqPlan[seqPlanCnt];
+        toy.status('' + seqPlan[seqPlanCnt]);
+
+        seqPlanCnt += 1;
+    }
+
+    function fnCtrlr (toySeq) {
+
+        switch (toySeq) {
+
+            case '1001':
+            case '1002':
+            case '1004':
+            case '1005':
+                t.pass('In order sequences arrive at controller.');
+                break;
+
+            case '1003':
+                t.fail('Out of order sequences should not arrive at controller.');
+                break;
+
+            default:
+                t.fail('We really should never reach this.');
+        }
+
+        controller.command(toySeq);
+
+        // Need to push through another command - since the status won't reach
+        if (seqPlanCnt === 2) {
+            controller.command('dummy');
+        }
+    }
+
+    function wrapUp() {
+        toy.removeListener('command', fnToy);
+        controller.removeListener('status', fnCtrlr);
+
+        t.end();
+    }
 
 });
 
@@ -149,16 +229,9 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
 test.onFinish(function () {
 
     setTimeout(function () {
-        if (localProxy) {
-            localProxy.close();
-        }
-        if (localToy) {
-            localToy.close();
-        }
-        if (localController) {
-            localController.close();
-        }
-
-    }, 250);
+        proxy.close();
+        toy.close();
+        controller.close();
+    }, 100);
 
 });

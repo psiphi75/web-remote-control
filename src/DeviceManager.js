@@ -38,17 +38,18 @@ function DeviceManager() {
  * Add a new toy/controller to the device manager.
  * @param  {string} deviceType    'toy' or 'controller'.
  * @param  {string} channel The channel to operate on (this is provided by the device).
- * @param  {string} address The IP address.
- * @param  {number} port    The port number
+ * @param  {object} socket  The socket details.
+ * @param  {number} seqNum  The sequence number from the device.
  * @param  {string} protocol 'tcp' or 'udp4'
  * @return {uid}            The UID of the device.
  */
-DeviceManager.prototype.add = function(deviceType, channel, socket) {
+DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
 
     switch (undefined) { // eslint-disable-line default-case
         case deviceType:
         case channel:
         case socket:
+        case seqNum:
             console.error('DeviceManager.add(): one of the inputs are undefined.');
             return undefined;
     }
@@ -62,7 +63,8 @@ DeviceManager.prototype.add = function(deviceType, channel, socket) {
     this.list[uid] = {
         deviceType: deviceType,
         channel: channel,
-        socket: socket
+        socket: socket,
+        seqNum: seqNum
     };
     return uid;
 
@@ -175,14 +177,45 @@ DeviceManager.prototype.getAll = function(deviceType, channel) {
  * @param  {number} port The port the device was last seen on.
  * @return {object}      The updated device details.
  */
-DeviceManager.prototype.update = function(uid, socket) {
-    if (!this.list[uid]) {
+DeviceManager.prototype.update = function(uid, socket, seqNum) {
+
+    if (isNaN(seqNum)) {
+        console.error('DeviceManager.update(): provided "seqNum" is not a number');
         return undefined;
     }
-    this.list[uid].socket = socket || this.list[uid].socket;
-    return this.list[uid];
+
+    var device = this.list[uid];
+    if (!device) {
+        return undefined;
+    }
+
+    device.socket = socket || device.socket;
+    device.seqNum = seqNum;
+    return device;
 };
 
+/**
+ * Make sure the sequence number is okay.
+ * @param  {string} uid    UID for the device
+ * @param  {number} seqNum The seqNum to check
+ * @return {boolean}       True or false
+ */
+DeviceManager.prototype.isLatestSeqNum = function(uid, seqNum) {
+
+    if (isNaN(seqNum)) {
+        console.error('DeviceManager.isLatestSeqNum(): provided "seqNum" is not a number');
+        return false;
+    }
+
+    var device = this.list[uid];
+    if (!device) {
+        return false;
+    }
+    if (device.seqNum > seqNum) {
+        return false;
+    }
+    return true;
+};
 
 /**
  * Confirm the device type is correct.

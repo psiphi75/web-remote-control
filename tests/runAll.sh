@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd test
+cd tests
 
 echo "Compression"
 node testCompression.js
@@ -20,9 +20,9 @@ PROTOCOL=TCP node testWRC-LocalProxy.js
 #
 # The following tests require a proxy configured and running on a remote server.
 #
-
-export PROXY_ADDRESS="your.remote.proxy.com"
-
+#
+# run this script using `PROXY_ADDRESS="your.proxy.com" ./runAll.sh`
+#
 if [ "${PROXY_ADDRESS}" != "" ]; then
 
     echo "Web-Remote-Control - REMOTE (${PROXY_ADDRESS}) - UDP"
