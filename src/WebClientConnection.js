@@ -51,6 +51,7 @@ util.inherits(WebClientConnection, EventEmitter);
  */
 WebClientConnection.prototype.createProxySocket = function (address, port) {
 
+    var self = this;
     this.remoteAddress = address;
     this.remotePort = port;
 
@@ -58,7 +59,9 @@ WebClientConnection.prototype.createProxySocket = function (address, port) {
     this.socket.on('connect', function() {
         console.log('connected');
     });
-    var self = this;
+    this.socket.on('error', function(ex) {
+        this.emit('error', ex);
+    });
     this.socket.on('event', function(message) {
         if (message && typeof message.byteLength === 'number') {
             message = String.fromCharCode.apply(null, new Uint8Array(message));

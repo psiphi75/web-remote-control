@@ -148,6 +148,7 @@ ServerConnection.prototype.listenTCP = function() {
         stream.on('close', function() {
             self.emit('socket-close', socketInfo.socketId);
         });
+        stream.on('error', handleError);
 
     });
     this.tcp.on('error', handleError);

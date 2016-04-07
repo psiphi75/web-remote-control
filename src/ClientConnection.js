@@ -69,9 +69,7 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
             var dgram = require('dgram');
             this.udp4 = dgram.createSocket('udp4');
             this.udp4.on('error', handleError.bind(this));
-            this.udp4.on('message', function (message) {
-                handleMessage.bind(self)(message);
-            });
+            this.udp4.on('message', handleMessage.bind(this));
             break;
 
         case 'tcp':
