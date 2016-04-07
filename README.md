@@ -1,14 +1,14 @@
 # Web Remote Control
-Remote control an IoT (Internet of Things) device from the web.  This also has a proxy which makes this solution ideal for controlling devices on the cellular network (i.e where you cannot directly access by an IP).  It uses the UDP protocol instead of TCP by default to make the communication more efficient.  Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
+This module allows you to control an IoT (Internet of Things) device from the web (e.g. your mobile phone).  This is a complete remote control solution that includes the following components:
+- A Proxy - runs on a server and needs to be accessible to the Controller and Toy.
+- The Controller - this can be via web or node.js.
+- The Toy - the device being controlled (this should run node.js).
 
-Three components are provided:
-- Proxy - needs to be run on a server accessible to the Controller and Toy.
-- Controller - this can be via web or node.js.
-- Toy - the device being controlled (this should run node.js).
+This solution is ideal for controlling devices over a cellular network (i.e where you cannot directly access by an IP).  It uses the UDP protocol instead of TCP by default to make the communication more efficient.  Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
 
 Connection methods are:
-- TCP - between node.js client and proxy.
-- UDP - between node.js client and proxy.
+- TCP - between node.js client/controller and proxy.
+- UDP - between node.js client/controller and proxy. This protocol is optimised with a compression protocol using [smaz](https://www.npmjs.com/package/smaz).
 - Socket.io - between Browser client and proxy.
 
 ## Install
@@ -22,9 +22,9 @@ $ npm install web-remote-control
 
 The proxy is required to relay `command`s from the controller to device. It also accepts `ping`s and relays `status` messages from the device/controller to the controller/device.
 
-The default port is 33330.
+The default port for TCP and UDP is 33330 and for socket.io it's 33331.
 
-```javascript
+```JavaScript
 var wrc = require('web-remote-control');
 var proxy = wrc.createProxy();
 ```
@@ -33,7 +33,7 @@ var proxy = wrc.createProxy();
 
 The device is what is being controlled.  It accepts `command`s, `message`s, and `ping` responses.  It can send `ping`s and `message`s.
 
-```javascript
+```JavaScript
 var wrc = require('web-remote-control');
 var toy = wrc.createToy({ proxyUrl: 'your proxy url'});
 
@@ -57,11 +57,9 @@ toy.on('command', function(cmd) {
 ```
 
 
-**The Controller (browser):**
+**The Controller (from browser):**
 
-See ./www/public/index.html for the below example in action.
-
-_Note: you need to run the `build.sh` script to build the browser based JavaScript code.  This relies on a globally installed browserify runtime._
+See the `./www/public/index.html` file for the below example in action.
 
 ```html
 <script src="./web-remote-control.js"></script>
@@ -84,12 +82,23 @@ _Note: you need to run the `build.sh` script to build the browser based JavaScri
 </script>
 ```
 
+You can also run the `runProxyAndWebServer.js` file.  This will run the proxy and webserver on the same server. For example:
 
-**The Controller (node.js):**
+```JavaScript
+node runProxyAndWebServer.js
+```
+
+You will then be able to browse to http://yourhost.com:8888/ with your mobile phone. This will serve the controller page for you, it will look like the image below.
+
+![Image of Controller screenshot](https://github.com/psiphi75/web-remote-control/tree/master/res/rc-screenshot.png)
+
+Tilting the phone side-to-side and up and down will move the dot on the screen, this can be translated to remotely control a device.
+
+**The Controller (from node.js):**
 
 The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
 
-```javascript
+```JavaScript
 var wrc = require('web-remote-control');
 var controller = wrc.createController({ proxyUrl: 'your proxy url' });
 
@@ -109,38 +118,39 @@ controller.on('status', function (status) {
 
 The default values are shown below.  This can be found in `index.js`.
 
-```javascript
+```JavaScript
 var defaults = {
 
-  // This is the URL were the proxy is located.  Only Toys and
-  // Controllers can configure this.
-  proxyUrl: 'localhost',
+    // This is the URL were the proxy is located.  Only Toys and Controllers can
+    // configure this.
+    proxyUrl: 'localhost',
 
-  // This is the port of the proxy.  All three components (proxy,
-  // controller and toy) need to be configured on the same port.
-  port: 33330,
+    // This is the port of the proxy.  All three components (proxy, controller,
+    // and toy) need to be configured on the same port.
+    port: 33330,
 
-  // This is the channel to use.  The proxy will ensure that only devices
-  // on the same channel can communicate together.  The controller and
-  // toy need to be on the same channel.  You can make the channel a
-  // unique string.
-  channel: 1,
+    // This is the channel to use.  The proxy will ensure that only devices on
+    // the same channel can communicate together.  The controller and toy need
+    // to be on the same channel.  You can make the channel a unique string.
+    channel: '1',
 
-  // How often the device pings the proxy.  This helps ensure the
-  // connection is kept alive.  You can disable this by setting it to
-  // 0 (zero).
-  keepalive: 30 * 1000,
+    // How often the device pings the proxy.  This helps ensure the connection
+    // is kept alive.  You can disable this by setting it to 0 (zero). Time is
+    // in milliseconds.
+    keepalive: 30 * 1000,
 
-  // This determines the logging to use.  By default it logs to the
-  // standard console.  Set this to `function () {}` if you wish to not
-  // log anything.
-  log: console.log,
+    // This determines the logging to use.  By default it logs to the standard
+    // console.
+    log: console.log,
 
-  // Use the TCP Protocol - only the proxy can use both TCP and UDP.
-  tcp: false,
+    // Use the TCP Protocol - only the proxy can use both TCP and UDP.
+    tcp: true,
 
-  // Use the UDP protocol - only the proxy can use both TCP and UDP.
-  udp4: true
+    // Use the UDP protocol - only the proxy can use both TCP and UDP.
+    udp4: true,
+
+    // Allow connections to proxy via Socket.IO
+    socketio: true
 
 };
 ```
@@ -159,9 +169,11 @@ var proxy = wrc.createProxy(settings);
 ## Known Issues and To-Do items
 
 Below are known issues, feel free to fix them.
-
-- Out of order packets are not handled, we should only use the most recent command packet.
-- Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
+- Allow only one controller per channel.
+- Create listener device that can't remote control the device.  Would need to create a private and public channel.
+- Proxy default of UDP, fallback to TCP.
+- **Done**: Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
+- **Done**: Out of order packets are not handled, we should only use the most recent command packet.
 - **Done**: Add the creation of "web-remote-control.js" to the install (need to run build.sh) and include browserify as a global.
 - **Done**: The web component needs creating and documented.
 - **Done** (for UDP): Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.
