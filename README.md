@@ -90,7 +90,7 @@ node runProxyAndWebServer.js
 
 You will then be able to browse to http://yourhost.com:8888/ with your mobile phone. This will serve the controller page for you, it will look like the image below.
 
-![Image of Controller screenshot](https://github.com/psiphi75/web-remote-control/tree/master/res/rc-screenshot.png)
+![Image of Controller screenshot](https://raw.githubusercontent.com/psiphi75/web-remote-control/master/res/rc-screenshot.png)
 
 Tilting the phone side-to-side and up and down will move the dot on the screen, this can be translated to remotely control a device.
 
