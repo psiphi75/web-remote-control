@@ -247,7 +247,9 @@ var YMAX = 1;
  * @param  {number} max  The maximum value in the range.
  * @return {number}      The calibrated value.
  */
+var isCalibrationMode = false;
 function calibrate(val, min, cntr, max) {
+    if (isCalibrationMode) return val;
     if (val <= -1) return min;
     if (val >= 1) return max;
     if (val < 0) {
@@ -318,6 +320,8 @@ function handleConfigButtonClick(e) {
 
     function changeConfigButtonToSet() {
 
+        isCalibrationMode = true;
+
         //
         // Change the button to 'Set'
         //
@@ -337,6 +341,8 @@ function handleConfigButtonClick(e) {
     }
 
     function changeConfigButtonToChange() {
+
+        isCalibrationMode = false;
 
         //
         // Change the button and remove timeout
