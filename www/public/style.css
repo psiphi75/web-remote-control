@@ -100,6 +100,18 @@ body {
 }
 
 
+/*
+ * Bootstrap slider
+ */
+
+.slider.slider-horizontal {
+    width: 80%;
+}
+
+.slider.slider-horizontal .slider-track {
+    margin-top: 60%;
+}
+
 
 @font-face {
   font-family: 'Glyphicons Halflings';

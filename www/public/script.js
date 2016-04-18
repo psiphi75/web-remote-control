@@ -213,9 +213,25 @@ function startController(channel) {
 
             var lastX = -100;
             var lastY = -100;
+
+            /**
+             * This will get the slider value if one exists, otherwise use the DeviceOrientation data.
+             * @param  {string} dim 'x' or 'y' value
+             * @return {number}     The rounded x or y value.
+             */
+            function getValue(dim) {
+                var val;
+                if (sliderValues[dim] !== null) {
+                    val = sliderValues[dim];
+                } else {
+                    val = offset[dim];
+                }
+                return Math.round(val * 100) / 100;
+            }
+
             setInterval(function() {
-                var thisX = Math.round(offset.x * 100) / 100;
-                var thisY = Math.round(offset.y * 100) / 100;
+                var thisX = getValue('x');
+                var thisY = getValue('y');
                 if (lastX === thisX && thisY === lastY) {
                     return;
                 }
@@ -464,6 +480,11 @@ var h;
 var center;
 var offset;
 
+var sliderValues = {
+    x: null,
+    y: null
+};
+
 // This a workaround for an old Firefox bug.  See:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=771575
 function init() { // eslint-disable-line no-unused-vars
@@ -482,6 +503,14 @@ function init() { // eslint-disable-line no-unused-vars
 
     // Channel change button.
     $('#btn-fullscreen').on('click', toggleFullscreen);
+
+    // We use the bootstrap slider: https://github.com/seiyria/bootstrap-slider
+    $('#slider-y').slider();
+    $('#slider-y').on('slide', function(slideEvt) {
+        // $('').text(slideEvt.value);
+        // console.log()
+        sliderValues.y = slideEvt.value;
+    });
 
     function delayedInit() {
 
