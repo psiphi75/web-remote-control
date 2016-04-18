@@ -25,7 +25,7 @@
 
 // Based on code from: http://www.inkfood.com/mobile-accelerometer-input/
 
-var NETWORK_UPDATE_FREQ = 15; // How many times per second to update the network (send commands)
+var NETWORK_UPDATE_FREQ = 5; // How many times per second to update the network (send commands)
 var BROWSER_UPDATE_FREQ = 30; // How many times per second to refresh the browser screen
 
 var Device = require('Device');
@@ -271,6 +271,8 @@ function calibrate(val, min, cntr, max) {
  */
 function restoreConfigValues() {
 
+    NETWORK_UPDATE_FREQ = setCalibrationConfig('net_update_freq') || NETWORK_UPDATE_FREQ;
+
     XMIN = setCalibrationConfig('x-min') || -1;
     XCNTR = setCalibrationConfig('x-center') || 0;
     XMAX = setCalibrationConfig('x-max') || 1;
@@ -301,16 +303,28 @@ function restoreConfigValues() {
 }
 
 var cfgBtnSetIntervals = {};
+var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
 
 function handleConfigButtonClick(e) {
 
-    var cfgUpdateRate = 100; // How frequently we update the config value
-
     var button = $(e.target);
     var label = e.target.parentElement.id;
+    var txtElement = $('#' + label + ' input');
+
+    switch (label) {
+        case 'net_update_freq':
+            saveDetails(txtElement, label);
+            break;
+        default:
+            handleLiveButton(label, button, txtElement);
+    }
+
+}
+
+function handleLiveButton(label, button, txtElement) {
+
     var splitLabel = label.split('-');
     var dim = splitLabel[0];
-    var txtElement = $('#' + label + ' input');
 
     if (isChangeButton()) {
         changeConfigButtonToSet();
@@ -337,7 +351,7 @@ function handleConfigButtonClick(e) {
         cfgBtnSetIntervals[label] = setInterval(function updateConfigText() {
             var val = offset[dim];
             txtElement.val(val);
-        }, cfgUpdateRate);
+        }, CONFIG_UPDATE_RATE);
     }
 
     function changeConfigButtonToChange() {
@@ -355,16 +369,20 @@ function handleConfigButtonClick(e) {
         //
         // Save the settings
         //
-        var value = parseFloat(txtElement.val());
-        localStorage.setItem(label, value);
-
-        // There are more efficient ways of doing the following:
-        restoreConfigValues();
+        saveDetails(txtElement, label);
     }
 
     function isChangeButton() {
         return button.text() === 'Change';
     }
+}
+
+function saveDetails(el, label) {
+    var value = parseFloat(el.val());
+    localStorage.setItem(label, value);
+
+    // There are more efficient ways of doing the following:
+    restoreConfigValues();
 }
 
 
@@ -389,6 +407,47 @@ function createAnimationFrame() {
             window.setTimeout(callback, 1000 / 60);
         };
 
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                             Fullscreen functions                          *
+ *                                                                           *
+ *****************************************************************************/
+
+// Find the right method, call on correct element
+function launchIntoFullscreen(element) {
+    if (element.requestFullscreen) {
+        element.requestFullscreen();
+    } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+    } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+    } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+    }
+ }
+
+// Whack fullscreen
+function exitFullscreen() {
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+    }
+}
+
+function toggleFullscreen() {
+    var fullscreenDisabled = document.fullscreenElement === null || document.mozFullScreenElement === null || document.webkitFullscreenElement === null;
+
+    if (fullscreenDisabled) {
+        launchIntoFullscreen(document.documentElement);
+    } else {
+        exitFullscreen();
+    }
 }
 
 
@@ -420,6 +479,9 @@ function init() { // eslint-disable-line no-unused-vars
     // Configuration form - any of the submit events.  This will
     // capture all the button clicks.
     $('.form-inline>button').on('click', handleConfigButtonClick);
+
+    // Channel change button.
+    $('#btn-fullscreen').on('click', toggleFullscreen);
 
     function delayedInit() {
 

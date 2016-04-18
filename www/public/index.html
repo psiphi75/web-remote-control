@@ -140,7 +140,12 @@
 
         <!-- The floating config button -->
         <button class="btn btn-primary" data-toggle="modal" data-target="#configModal">
-            <p>...<span class="glyphicon glyphicon-option-vertical"></span></p>
+            <span class="glyphicon glyphicon-option-vertical"></span>
+        </button>
+
+        <!-- The floating fullscreen button -->
+        <button id="btn-fullscreen" class="btn btn-primary">
+            <span class="glyphicon glyphicon-fullscreen"></span>
         </button>
 
         <!-- The config modal -->
@@ -156,6 +161,16 @@
                     <div class="modal-body">
 
                         <div class="row">
+
+                            <h5>General:</h5>
+
+                            <form id="net_update_freq" class="form-inline">
+                                <div class="form-group">
+                                    <label for="net_update_freq">Network Update Freq (times/sec)</label>
+                                    <input type="text" class="form-control">
+                                </div>
+                                <button type="button" class="btn btn-primary">Set</button>
+                            </form>
 
                             <h5>Servo 1:</h5>
 
