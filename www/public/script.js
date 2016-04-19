@@ -45,7 +45,7 @@ var connectionStatus = 'notconnected';
 var COL_GREY = '#555';
 var COL_RED = '#d55';
 
-function clearLog() {
+function clearLog() {       // eslint-disable-line no-unused-vars
     var el = $('#log>.card-block');
     el.html('');
 }
@@ -229,7 +229,7 @@ function startController(channel) {
                 if (sliderValues[dim] !== null) {
                     val = sliderValues[dim];
                 } else {
-                    val = offset[dim];
+                    val = offset[dim] * SCALE[dim];
                 }
                 return Math.round(val * 100) / 100;
             }
@@ -260,8 +260,10 @@ var YMIN = -1;
 var YCNTR = 0;
 var YMAX = 1;
 
-var X_SCALE = 2;
-var Y_SCALE = 2;
+var SCALE = {
+    x: 2,
+    y: 2
+};
 
 /**
  * Calibration function - uses simple formula y = m * x + c.
@@ -296,8 +298,8 @@ function calibrate(val, min, cntr, max) {
 function restoreConfigValues() {
 
     NETWORK_UPDATE_FREQ = setCalibrationConfig('net_update_freq') || NETWORK_UPDATE_FREQ;
-    X_SCALE = setCalibrationConfig('x-scale') || X_SCALE;
-    Y_SCALE = setCalibrationConfig('y-scale') || Y_SCALE;
+    SCALE.x = setCalibrationConfig('x-scale') || SCALE.x;
+    SCALE.y = setCalibrationConfig('y-scale') || SCALE.y;
 
     XMIN = setCalibrationConfig('x-min') || -1;
     XCNTR = setCalibrationConfig('x-center') || 0;
@@ -561,9 +563,10 @@ function init() { // eslint-disable-line no-unused-vars
                     x: scale(event.gamma, 70),
                     y: scale(event.beta, 70)
                 };
-                ball.position.x = center.x + offset.x * center.x * X_SCALE;
-                ball.position.y = center.y + offset.y * center.x * Y_SCALE;
+                ball.position.x = center.x + offset.x * center.x;
+                ball.position.y = center.y + offset.y * center.x;
 
+                // Limit the ball to the screen
                 if (ball.position.x < 0) {
                     ball.position.x = 0;
                 }
