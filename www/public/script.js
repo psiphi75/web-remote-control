@@ -45,6 +45,11 @@ var connectionStatus = 'notconnected';
 var COL_GREY = '#555';
 var COL_RED = '#d55';
 
+function clearLog() {
+    var el = $('#log>.card-block');
+    el.html('');
+}
+
 function logMessage(message) {
     writeToLogger(message, COL_GREY);
 }
@@ -255,6 +260,9 @@ var YMIN = -1;
 var YCNTR = 0;
 var YMAX = 1;
 
+var X_SCALE = 2;
+var Y_SCALE = 2;
+
 /**
  * Calibration function - uses simple formula y = m * x + c.
  * @param  {number} val  The number to calibrate.
@@ -288,6 +296,8 @@ function calibrate(val, min, cntr, max) {
 function restoreConfigValues() {
 
     NETWORK_UPDATE_FREQ = setCalibrationConfig('net_update_freq') || NETWORK_UPDATE_FREQ;
+    X_SCALE = setCalibrationConfig('x-scale') || X_SCALE;
+    Y_SCALE = setCalibrationConfig('y-scale') || Y_SCALE;
 
     XMIN = setCalibrationConfig('x-min') || -1;
     XCNTR = setCalibrationConfig('x-center') || 0;
@@ -329,6 +339,8 @@ function handleConfigButtonClick(e) {
 
     switch (label) {
         case 'net_update_freq':
+        case 'x-scale':
+        case 'y-scale':
             saveDetails(txtElement, label);
             break;
         default:
@@ -535,7 +547,8 @@ function init() { // eslint-disable-line no-unused-vars
         };
         ball.position = {
             x: center.x,
-            y: center.y
+            y: center.y,
+            radius: parseFloat($('#ball').css('height').replace('px', '')) / 2
         };
 
         if (window.DeviceOrientationEvent) {
@@ -548,8 +561,23 @@ function init() { // eslint-disable-line no-unused-vars
                     x: scale(event.gamma, 70),
                     y: scale(event.beta, 70)
                 };
-                ball.position.x = center.x + offset.x * center.x;
-                ball.position.y = center.y + offset.y * center.x;
+                ball.position.x = center.x + offset.x * center.x * X_SCALE;
+                ball.position.y = center.y + offset.y * center.x * Y_SCALE;
+
+                if (ball.position.x < 0) {
+                    ball.position.x = 0;
+                }
+                if (ball.position.x > w - ball.position.radius * 2) {
+                    ball.position.x = w - ball.position.radius * 2;
+                }
+
+                if (ball.position.y < 0) {
+                    ball.position.y = 0;
+                }
+                if (ball.position.y > h - ball.position.radius * 2) {
+                    ball.position.y = h - ball.position.radius * 2;
+                }
+
 
             });
 
