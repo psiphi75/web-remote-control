@@ -98,6 +98,7 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
         var msgObj;
         try {
             msgObj = messageHandler.parseIncomingMessage(message, this.enable_compression);
+            console.log('INCOMING MSG: ', JSON.stringify(msgObj));
         } catch (ex) {
             self.emit('error', ex);
             return;

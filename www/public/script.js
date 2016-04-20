@@ -22,6 +22,7 @@
  *********************************************************************/
 
 /* eslint-env jquery */
+/* globals Axis, setCalibrationMode, getAxis, unsetCalibrationMode */
 
 // Based on code from: http://www.inkfood.com/mobile-accelerometer-input/
 
@@ -34,13 +35,252 @@ var controller;
 
 var connectionStatus = 'notconnected';
 
+var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
+
+/*****************************************************************************
+ *                                                                           *
+ *                            Controller Functions                           *
+ *                                                                           *
+ *****************************************************************************/
+
+function startController(channel) {
+
+    controller = new Device({
+        deviceType: 'controller',
+        channel: channel
+    }, WebClientConnection);
+
+    controller.connection.socket.on('connect', function() {
+
+        displayConnectionStatus('connecting');
+
+        controller.on('register', function() {
+
+            displayConnectionStatus('connected');
+
+            controller.ping(function(t) {
+                logMessage('Ping: ' + t / 1000);
+            });
+
+            controller.on('status', function(status) {
+
+                if (typeof status === 'object') {
+                    displaySensorStatus(status, 'gyro');
+                    displaySensorStatus(status, 'compassRaw');
+                    displaySensorStatus(status, 'accel');
+                    displaySensorStatus(status, 'gps');
+                }
+
+            });
+            controller.on('error', function(err) {
+                logError('There was an error: ', err);
+            });
+
+            function sendCommand() {
+
+                // Don't bother updating if values have not changed.
+                if (x.hasNotChanged() && y.hasNotChanged()) {
+                    return;
+                }
+
+                controller.command({
+                    action: 'move',
+                    servo1: x.getValue(),
+                    servo2: y.getValue()
+                });
+            }
+
+            setInterval(sendCommand, 1000 / NETWORK_UPDATE_FREQ);
+        });
+    });
+}
+
+
+var x = Axis('slider');
+var y = Axis('orientation');
+
+function collectDeviceOrientation(event) {
+
+    // FIXME: When the device is tipped to vertical, then just a bit more (upside down) these numbers will flip around.
+    x.setValFromOrientation(event.gamma);
+    y.setValFromOrientation(event.beta);
+
+}
+
+/*****************************************************************************
+ *                                                                           *
+ *                       Load saved config from localStorage                 *
+ *                                                                           *
+ *****************************************************************************/
+
+/**
+ * On start we restore the config values into the modal.
+ */
+function restoreConfigValues() {
+
+    NETWORK_UPDATE_FREQ = setCalibrationConfig('net_update_freq') || NETWORK_UPDATE_FREQ;
+    x.scale = setCalibrationConfig('x-scale') || x.scale;
+    y.scale = setCalibrationConfig('y-scale') || y.scale;
+
+    x.min = setCalibrationConfig('x-min') || -1;
+    x.cntr = setCalibrationConfig('x-center') || 0;
+    x.max = setCalibrationConfig('x-max') || 1;
+    y.min = setCalibrationConfig('y-min') || -1;
+    y.cntr = setCalibrationConfig('y-center') || 0;
+    y.max = setCalibrationConfig('y-max') || 1;
+
+    function setCalibrationConfig(label) {
+        var storedValue = localStorage.getItem(label);
+        if (storedValue) {
+
+            // Make sure we have extracted a number
+            var num = parseFloat(storedValue);
+            if (isNaN(num)) {
+                localStorage.removeItem(label);
+                return null;
+            }
+
+            // Set the model configuration values
+            var el = $('#' + label + ' input');
+            el.val(num);
+            return num;
+        } else {
+            return null;
+        }
+
+    }
+}
+
+/*****************************************************************************
+ *                                                                           *
+ *                     Config Button Handling Functions                      *
+ *                                                                           *
+ *****************************************************************************/
+
+var cfgBtnSetIntervals = {};
+function handleConfigButtonClick(e) {
+
+    var button = $(e.target);
+    var label = e.target.parentElement.id;
+    var txtElement = $('#' + label + ' input');
+
+    switch (label) {
+        case 'net_update_freq':
+        case 'x-scale':
+        case 'y-scale':
+            saveDetails(txtElement, label);
+            break;
+        default:
+            handleLiveButton(label, button, txtElement);
+    }
+
+}
+
+function handleLiveButton(label, button, txtElement) {
+
+    var splitLabel = label.split('-');
+    var dim = splitLabel[0];
+
+    if (isChangeButton()) {
+        changeConfigButtonToSet();
+    } else {
+        changeConfigButtonToChange();
+    }
+
+    function changeConfigButtonToSet() {
+
+        if (!setCalibrationMode(dim)) {
+            return;
+        }
+
+        //
+        // Change the button to 'Set'
+        //
+        button.removeClass('btn-primary').addClass('btn-warning');
+        button.text('Set');
+
+        //
+        // Set up realtime updates
+        //
+        if (cfgBtnSetIntervals[label]) {
+            console.error('Did not expect to get here.');
+        }
+        cfgBtnSetIntervals[label] = setInterval(function updateConfigText() {
+            var val = getAxis(dim).getRawValue();
+            txtElement.val(val);
+        }, CONFIG_UPDATE_RATE);
+    }
+
+    function changeConfigButtonToChange() {
+
+        unsetCalibrationMode(dim);
+
+        //
+        // Change the button and remove timeout
+        //
+        button.removeClass('btn-warning').addClass('btn-primary');
+        button.text('Change');
+        clearTimeout(cfgBtnSetIntervals[label]);
+        delete cfgBtnSetIntervals[label];
+
+        //
+        // Save the settings
+        //
+        saveDetails(txtElement, label);
+    }
+
+    function isChangeButton() {
+        return button.text() === 'Change';
+    }
+}
+
+function saveDetails(el, label) {
+    var value = parseFloat(el.val());
+    localStorage.setItem(label, value);
+
+    // There are more efficient ways of doing the following:
+    restoreConfigValues();
+}
+
+
+/*****************************************************************************
+ *                                                                           *
+ *                                   UI Stuff                                *
+ *                                                                           *
+ *****************************************************************************/
+
+
+function updateBallPosition() {
+
+     ball.position.x = window.innerWidth / 2 + x.getRawValue() * window.innerWidth / 2;
+     ball.position.y = window.innerHeight / 2 + y.getRawValue() * window.innerHeight / 2;
+
+     // Limit the ball to the screen
+     if (ball.position.x < 0) {
+         ball.position.x = 0;
+     }
+     if (ball.position.x > window.innerWidth - ball.position.radius * 2) {
+         ball.position.x = window.innerWidth - ball.position.radius * 2;
+     }
+
+     if (ball.position.y < 0) {
+         ball.position.y = 0;
+     }
+     if (ball.position.y > window.innerHeight - ball.position.radius * 2) {
+         ball.position.y = window.innerHeight - ball.position.radius * 2;
+     }
+
+     ball.style.left = ball.position.x + 'px';
+     ball.style.top = ball.position.y + 'px';
+
+     setTimeout(updateBallPosition, 1000 / BROWSER_UPDATE_FREQ); //KEEP ANIMATING
+}
 
 /*****************************************************************************
  *                                                                           *
  *                               Logging Functions                           *
  *                                                                           *
  *****************************************************************************/
-
 
 var COL_GREY = '#555';
 var COL_RED = '#d55';
@@ -75,7 +315,7 @@ function writeToLogger(message, colour) {
  * Update the on-screen connection status
  * @param  {string} status The new status
  */
-function updateConnection(status) {
+function displayConnectionStatus(status) {
     var newClass;
     var message;
     switch (status) {
@@ -148,13 +388,12 @@ function setChannelFromTextBox() {
 }
 
 
-/*****************************************************************************
- *                                                                           *
- *                            Controller Functions                           *
- *                                                                           *
- *****************************************************************************/
-
-function displayStatus(status, type) {
+/**
+ * Display the status of a specific sensor (e.g. gyro or gps).
+ * @param  {object} status The object values
+ * @param  {string} type   The name of the object
+ */
+function displaySensorStatus(status, type) {
 
     if (!status[type]) {
         return;
@@ -181,238 +420,6 @@ function displayStatus(status, type) {
         }
 
     }
-}
-
-function startController(channel) {
-
-    controller = new Device({
-        deviceType: 'controller',
-        channel: channel
-    }, WebClientConnection);
-
-    controller.connection.socket.on('connect', function() {
-
-        updateConnection('connecting');
-
-        controller.on('register', function() {
-
-            updateConnection('connected');
-
-            controller.ping(function(t) {
-                logMessage('Ping: ' + t / 1000);
-            });
-
-            controller.on('status', function(status) {
-
-                if (typeof status === 'object') {
-                    displayStatus(status, 'gyro');
-                    displayStatus(status, 'compassRaw');
-                    displayStatus(status, 'accel');
-                    displayStatus(status, 'gps');
-                }
-
-            });
-            controller.on('error', function(err) {
-                logError('There was an error: ', err);
-            });
-
-            var lastX = -100;
-            var lastY = -100;
-
-            /**
-             * This will get the slider value if one exists, otherwise use the DeviceOrientation data.
-             * @param  {string} dim 'x' or 'y' value
-             * @return {number}     The rounded x or y value.
-             */
-            function getValue(dim) {
-                var val;
-                if (sliderValues[dim] !== null) {
-                    val = sliderValues[dim];
-                } else {
-                    val = offset[dim] * SCALE[dim];
-                }
-                return Math.round(val * 100) / 100;
-            }
-
-            setInterval(function() {
-                var thisX = getValue('x');
-                var thisY = getValue('y');
-                if (lastX === thisX && thisY === lastY) {
-                    return;
-                }
-                lastX = thisX;
-                lastY = thisY;
-
-                controller.command({
-                    action: 'move',
-                    x: calibrate(thisX, XMIN, XCNTR, XMAX),
-                    y: calibrate(thisY, YMIN, YCNTR, YMAX)
-                });
-            }, 1000 / NETWORK_UPDATE_FREQ);
-        });
-    });
-}
-
-var XMIN = -1;
-var XCNTR = 0;
-var XMAX = 1;
-var YMIN = -1;
-var YCNTR = 0;
-var YMAX = 1;
-
-var SCALE = {
-    x: 2,
-    y: 2
-};
-
-/**
- * Calibration function - uses simple formula y = m * x + c.
- * @param  {number} val  The number to calibrate.
- * @param  {number} min  The minimum range of the value.
- * @param  {number} cntr The mid point of the number.
- * @param  {number} max  The maximum value in the range.
- * @return {number}      The calibrated value.
- */
-var isCalibrationMode = false;
-function calibrate(val, min, cntr, max) {
-    if (isCalibrationMode) return val;
-    if (val <= -1) return min;
-    if (val >= 1) return max;
-    if (val < 0) {
-        return (cntr - min) * val + cntr;
-    } else {
-        return (max - cntr) * val + cntr;
-    }
-}
-
-
-/*****************************************************************************
- *                                                                           *
- *                     Config Button Handling Functions                      *
- *                                                                           *
- *****************************************************************************/
-
-/**
- * On start we restore the config values into the modal.
- */
-function restoreConfigValues() {
-
-    NETWORK_UPDATE_FREQ = setCalibrationConfig('net_update_freq') || NETWORK_UPDATE_FREQ;
-    SCALE.x = setCalibrationConfig('x-scale') || SCALE.x;
-    SCALE.y = setCalibrationConfig('y-scale') || SCALE.y;
-
-    XMIN = setCalibrationConfig('x-min') || -1;
-    XCNTR = setCalibrationConfig('x-center') || 0;
-    XMAX = setCalibrationConfig('x-max') || 1;
-    YMIN = setCalibrationConfig('y-min') || -1;
-    YCNTR = setCalibrationConfig('y-center') || 0;
-    YMAX = setCalibrationConfig('y-max') || 1;
-
-    function setCalibrationConfig(label) {
-        var storedValue = localStorage.getItem(label);
-        if (storedValue) {
-
-            // Make sure we have extracted a number
-            var num = parseFloat(storedValue);
-            if (isNaN(num)) {
-                localStorage.removeItem(label);
-                return null;
-            }
-
-            // Set the model configuration values
-            var el = $('#' + label + ' input');
-            el.val(num);
-            return num;
-        } else {
-            return null;
-        }
-
-    }
-}
-
-var cfgBtnSetIntervals = {};
-var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
-
-function handleConfigButtonClick(e) {
-
-    var button = $(e.target);
-    var label = e.target.parentElement.id;
-    var txtElement = $('#' + label + ' input');
-
-    switch (label) {
-        case 'net_update_freq':
-        case 'x-scale':
-        case 'y-scale':
-            saveDetails(txtElement, label);
-            break;
-        default:
-            handleLiveButton(label, button, txtElement);
-    }
-
-}
-
-function handleLiveButton(label, button, txtElement) {
-
-    var splitLabel = label.split('-');
-    var dim = splitLabel[0];
-
-    if (isChangeButton()) {
-        changeConfigButtonToSet();
-    } else {
-        changeConfigButtonToChange();
-    }
-
-    function changeConfigButtonToSet() {
-
-        isCalibrationMode = true;
-
-        //
-        // Change the button to 'Set'
-        //
-        button.removeClass('btn-primary').addClass('btn-warning');
-        button.text('Set');
-
-        //
-        // Set up realtime updates
-        //
-        if (cfgBtnSetIntervals[label]) {
-            console.error('Did not expect to get here.');
-        }
-        cfgBtnSetIntervals[label] = setInterval(function updateConfigText() {
-            var val = offset[dim];
-            txtElement.val(val);
-        }, CONFIG_UPDATE_RATE);
-    }
-
-    function changeConfigButtonToChange() {
-
-        isCalibrationMode = false;
-
-        //
-        // Change the button and remove timeout
-        //
-        button.removeClass('btn-warning').addClass('btn-primary');
-        button.text('Change');
-        clearTimeout(cfgBtnSetIntervals[label]);
-        delete cfgBtnSetIntervals[label];
-
-        //
-        // Save the settings
-        //
-        saveDetails(txtElement, label);
-    }
-
-    function isChangeButton() {
-        return button.text() === 'Change';
-    }
-}
-
-function saveDetails(el, label) {
-    var value = parseFloat(el.val());
-    localStorage.setItem(label, value);
-
-    // There are more efficient ways of doing the following:
-    restoreConfigValues();
 }
 
 
@@ -489,15 +496,6 @@ function toggleFullscreen() {
 
 
 var ball;
-var w;
-var h;
-var center;
-var offset;
-
-var sliderValues = {
-    x: null,
-    y: null
-};
 
 // This a workaround for an old Firefox bug.  See:
 // https://bugzilla.mozilla.org/show_bug.cgi?id=771575
@@ -519,97 +517,35 @@ function init() { // eslint-disable-line no-unused-vars
     $('#btn-fullscreen').on('click', toggleFullscreen);
 
     // We use the bootstrap slider: https://github.com/seiyria/bootstrap-slider
-    $('#slider-y').slider();
-    $('#slider-y').on('slide', function(slideEvt) {
-        // $('').text(slideEvt.value);
-        // console.log()
-        sliderValues.y = slideEvt.value;
+    $('#slider-x').slider();
+    $('#slider-x').on('slide', function(slideEvt) {
+        x.setValFromSlider(slideEvt.value);
+    });
+    $('#slider-x').on('change', function(slideEvt) {
+        if (slideEvt.value && !isNaN(slideEvt.value.newValue)) {
+            x.setValFromSlider(slideEvt.value.newValue);
+        }
     });
 
     function delayedInit() {
 
         ball = document.getElementById('ball');
 
-        // TODO: It would be nice to have this full screen
-        // document.requestFullscreen()
-
-        w = window.innerWidth;
-        h = window.innerHeight;
-
-        ball.style.left = (w / 2) - 50 + 'px';
-        ball.style.top = (h / 2) - 50 + 'px';
-        center = {
-            x: window.innerWidth / 2,
-            y: window.innerHeight / 2
-        };
-
-        offset = {
-            x: 0,
-            y: 0
-        };
+        ball.style.left = (window.innerWidth / 2) - 50 + 'px';
+        ball.style.top = (window.innerHeight / 2) - 50 + 'px';
         ball.position = {
-            x: center.x,
-            y: center.y,
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
             radius: parseFloat($('#ball').css('height').replace('px', '')) / 2
         };
 
         if (window.DeviceOrientationEvent) {
-
-            window.addEventListener('deviceorientation', function(event) {
-
-                // FIXME: When the device is tipped to vertical, then just a bit more (upside down)
-                // these numbers will flip around.
-                offset = {
-                    x: scale(event.gamma, 70),
-                    y: scale(event.beta, 70)
-                };
-                ball.position.x = center.x + offset.x * center.x;
-                ball.position.y = center.y + offset.y * center.x;
-
-                // Limit the ball to the screen
-                if (ball.position.x < 0) {
-                    ball.position.x = 0;
-                }
-                if (ball.position.x > w - ball.position.radius * 2) {
-                    ball.position.x = w - ball.position.radius * 2;
-                }
-
-                if (ball.position.y < 0) {
-                    ball.position.y = 0;
-                }
-                if (ball.position.y > h - ball.position.radius * 2) {
-                    ball.position.y = h - ball.position.radius * 2;
-                }
-
-
-            });
-
+            window.addEventListener('deviceorientation', collectDeviceOrientation);
         } else {
             window.alert('Could not find accelerometer'); // eslint-disable-line
         }
 
-        update();
+        updateBallPosition();
     }
 
-}
-
-
-/**
- * Scale a number from -min_max to +min_max (from -1.0 to 1.0)
- * @param  {number} val     The number to scale
- * @param  {number} min_max The min (-ve) and max (+ve) value
- * @return {number}         The scaled value.
- */
-function scale(val, min_max) {
-    if (val < -min_max) return -1.0;
-    if (val > min_max) return 1.0;
-    return val / min_max;
-}
-
-function update() {
-
-    ball.style.top = ball.position.y + 'px';
-    ball.style.left = ball.position.x + 'px';
-
-    setTimeout(update, 1000 / BROWSER_UPDATE_FREQ); //KEEP ANIMATING
 }
