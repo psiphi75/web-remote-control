@@ -28,6 +28,7 @@
 
 var NETWORK_UPDATE_FREQ = 5; // How many times per second to update the network (send commands)
 var BROWSER_UPDATE_FREQ = 30; // How many times per second to refresh the browser screen
+var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
 
 var Device = require('Device');
 var WebClientConnection = require('WebClientConnection');
@@ -35,7 +36,9 @@ var controller;
 
 var connectionStatus = 'notconnected';
 
-var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
+var x = Axis('slider');
+var y = Axis('orientation');
+
 
 /*****************************************************************************
  *                                                                           *
@@ -44,6 +47,8 @@ var CONFIG_UPDATE_RATE = 100; // How frequently we update the config value
  *****************************************************************************/
 
 function startController(channel) {
+
+    var firstStatusMessage = true;
 
     controller = new Device({
         deviceType: 'controller',
@@ -63,6 +68,11 @@ function startController(channel) {
             });
 
             controller.on('status', function(status) {
+
+                if (firstStatusMessage) {
+                    writeToLogger('Toy is connected.');
+                    firstStatusMessage = false;
+                }
 
                 if (typeof status === 'object') {
                     displaySensorStatus(status, 'gyro');
@@ -95,17 +105,6 @@ function startController(channel) {
     });
 }
 
-
-var x = Axis('slider');
-var y = Axis('orientation');
-
-function collectDeviceOrientation(event) {
-
-    // FIXME: When the device is tipped to vertical, then just a bit more (upside down) these numbers will flip around.
-    x.setValFromOrientation(event.gamma);
-    y.setValFromOrientation(event.beta);
-
-}
 
 /*****************************************************************************
  *                                                                           *
@@ -527,6 +526,7 @@ function init() { // eslint-disable-line no-unused-vars
         }
     });
 
+
     function delayedInit() {
 
         ball = document.getElementById('ball');
@@ -546,6 +546,14 @@ function init() { // eslint-disable-line no-unused-vars
         }
 
         updateBallPosition();
+    }
+
+    function collectDeviceOrientation(event) {
+
+        // FIXME: When the device is tipped to vertical, then just a bit more (upside down) these numbers will flip around.
+        x.setValFromOrientation(event.gamma);
+        y.setValFromOrientation(event.beta);
+
     }
 
 }
