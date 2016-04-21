@@ -22,7 +22,7 @@
  *********************************************************************/
 
 /* eslint-env jquery */
-/* globals Axis, setCalibrationMode, getAxis, unsetCalibrationMode */
+/* globals Axis, setCalibrationMode, getAxis, unsetCalibrationMode, Notes */
 
 // Based on code from: http://www.inkfood.com/mobile-accelerometer-input/
 
@@ -54,6 +54,13 @@ function startController(channel) {
         deviceType: 'controller',
         channel: channel
     }, WebClientConnection);
+
+    controller.sendNote = function controllerSendNote(note) {
+        controller.command({
+            action: 'note',
+            note: note
+        });
+    };
 
     controller.connection.socket.on('connect', function() {
 
@@ -507,6 +514,12 @@ function init() { // eslint-disable-line no-unused-vars
 
     // Channel change button.
     $('#btn-change-channel').on('click', setChannelFromTextBox);
+
+    // Set up the note text boxes
+    Notes('note-1');
+    Notes('note-2');
+    Notes('note-3');
+    Notes('note-4');
 
     // Configuration form - any of the submit events.  This will
     // capture all the button clicks.

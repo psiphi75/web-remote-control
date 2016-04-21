@@ -103,6 +103,7 @@
             </div>
         </div>
 
+        <!-- GPS and log box -->
         <div class="row row-height-medium toy-stat">
             <div id="gps" class="col-xs-4">
                 <div class="card card-block">
@@ -131,9 +132,50 @@
             </div>
         </div>
 
+        <!-- Notes and buttons -->
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="input-group">
+                    <input id="note-1" type="text" class="form-control" placeholder="Enter note">
+                    <span class="input-group-btn">
+                        <button id="btn-note-1" class="btn btn-secondary" type="button">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="input-group">
+                    <input id="note-2" type="text" class="form-control" placeholder="Enter note">
+                    <span class="input-group-btn">
+                        <button id="btn-note-2" class="btn btn-secondary" type="button">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="input-group">
+                    <input id="note-3" type="text" class="form-control" placeholder="Enter note">
+                    <span class="input-group-btn">
+                        <button id="btn-note-3" class="btn btn-secondary" type="button">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="input-group">
+                    <input id="note-4" type="text" class="form-control" placeholder="Enter note">
+                    <span class="input-group-btn">
+                        <button id="btn-note-4" class="btn btn-secondary" type="button">Send</button>
+                    </span>
+                </div>
+            </div>
+        </div>
 
         <!-- The RC frame -->
-        <div class="row row-height-50pc">
+        <div class="row row-height-medium">
             <div id="controller" class="col-xs-1"></div>
             <div id="ball"></div>
             <input id="slider-x" type="text" data-slider-min="-1" data-slider-max="1" data-slider-step="0.05" data-slider-value="0" data-slider-orientation="horizontal"/>
@@ -265,6 +307,7 @@
     <script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
     <script src="web-remote-control.js"></script>
     <script src="Axis.js"></script>
+    <script src="Note.js"></script>
     <script src="script.js"></script>
 
 </body>

@@ -29,6 +29,8 @@
  */
 function Axis(method) {  // eslint-disable-line no-unused-vars
 
+    'use strict';
+
     var SCALE_ORIENTATION = 70;
     var lastRawValue = null;
     var isPaused = false;
