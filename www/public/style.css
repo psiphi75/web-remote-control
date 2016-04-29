@@ -26,6 +26,11 @@ body {
     border-radius: 0.6rem;
     width: 50px;
 }
+#gps .label-pill {
+    border-radius: 0.6rem;
+    width: 90px;
+}
+
 .label {
     padding: .5em;
 }
