@@ -28,15 +28,4 @@
  */
 
 var wrc = require('./index');
-wrc.createProxy();
-
-/*
- * Also start the webserver.
- */
-try {
-    // Need this so we can serve content
-    process.chdir('./www');
-} catch (err) {
-    console.log('chdir: ' + err);
-}
-require('./www/WebServer');
+wrc.createProxy({tcp: true});
