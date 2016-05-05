@@ -4,3 +4,6 @@ node_modules/
 npm-debug.log
 web-remote-control.js
 tmp
+proxyError.log
+wrcWebServer.log
+proxy.log

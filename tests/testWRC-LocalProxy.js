@@ -55,9 +55,20 @@ var channel1 = 'channel-1';
 //
 
 
-var proxy = wrc.createProxy({log: logging, udp4: UDP, tcp: TCP, socketio: false });
+var proxy = createProxy();
 var toy;
 var controller;
+
+function createProxy() {
+    return wrc.createProxy({log: logging, udp4: UDP, tcp: TCP, socketio: false });
+}
+function createController() {
+    return wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+}
+function createToy() {
+    return wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+}
+
 
 test('Test Proxy can be created and a toy can be registered', function(t) {
 
@@ -67,27 +78,22 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
     var uid1;
     var uid2;
 
-    proxy.on('register', function fn(msgObj) {
+    proxy.once('register', function fn(msgObj) {
         t.equal(msgObj.type, 'register', 'message is correct type');
         uid1 = msgObj.uid;
         t.true(typeof msgObj.uid === 'string', 'the uid is the correct type');
 
         tests += 2;
         wrapUp();
-
-        proxy.removeListener('register', fn);
     });
 
-    toy = wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
-
-    toy.on('register', function fnReg(msgUid) {
+    toy = createToy();
+    toy.once('register', function fnReg(msgUid) {
         t.true(typeof msgUid === 'string', 'the uid is the correct type');
         uid2 = msgUid;
 
         tests += 1;
         wrapUp();
-
-        toy.removeListener('register', fnReg);
     });
 
     function wrapUp() {
@@ -105,21 +111,19 @@ test('Test controller can send commands to proxy', function(t) {
 
     var cmdTxt = 'simon say\'s do this';
 
-    proxy.on('command', function fn (cmdObj) {
+    proxy.once('command', function fn (cmdObj) {
         t.equal(cmdObj.type, 'command', 'message is correct type');
         t.equal(cmdObj.data, cmdTxt, 'command was correct');
         t.end();
-
-        proxy.removeListener('command', fn);
     });
 
-    controller = wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
-    controller.on('register', function fnReg() {
+    controller = createController();
+    controller.once('register', function fnReg() {
         controller.command(cmdTxt);
-        controller.removeListener('command', fnReg);
     });
 
 });
+
 
 test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-registers', function(t) {
 
@@ -128,22 +132,18 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
     // "Crash" the proxy - we simulate by removing the toy from DevMan
     proxy.devices.remove(toy.uid);
 
-    toy.on('error', function fn1 () {
+    toy.once('error', function() {
         t.pass('proxy sent an error response, as expected');
-        toy.removeListener('error', fn1);
     });
 
-    toy.on('register', function fn2 (msgUid) {
+    toy.once('register', function(msgUid) {
         t.true(typeof msgUid === 'string', '... and we re-registered okay');
         t.end();
-
-        toy.removeListener('register', fn2);
     });
 
     toy.ping();
 
 });
-
 
 test('The sequence numbers are handled and passed from device to toy', function(t) {
 

@@ -108,7 +108,7 @@ function Device(settings, Connection) {
             self.uid = undefined;
             self.register();
         }
-        self.emit('error', 'Device: There was an error: ' + responseMsgObj);
+        self.emit('error', new Error('Device: There was an error: ' + JSON.stringify(responseMsgObj)));
     }
 
     // Make ourself an emiter

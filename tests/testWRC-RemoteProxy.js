@@ -73,8 +73,8 @@ var toy = wrc.createToy(options);
 
 // Wait until both devices are registered
 var countRegs = 0;
-controller.on('register', regCounter);
-toy.on('register', regCounter);
+controller.once('register', regCounter);
+toy.once('register', regCounter);
 function regCounter () {
     countRegs += 1;
     if (countRegs === 2) {
@@ -108,7 +108,7 @@ function startTests () {
 
         var cmdTxt = 'simon say\'s do this';
 
-        toy.on('command', function fn (respCmdTxt) {
+        toy.once('command', function(respCmdTxt) {
 
             // Slow things down just a bit
             setTimeout(function() {
@@ -116,7 +116,6 @@ function startTests () {
                 t.end();
             }, 50);
 
-            toy.removeListener('command', fn);
         });
 
         controller.command(cmdTxt);
@@ -132,11 +131,9 @@ function startTests () {
             b: 'c'
         };
 
-        toy.on('command', function fn (respCmdObj) {
+        toy.once('command', function(respCmdObj) {
             t.deepEqual(respCmdObj, cmdObj, 'command was correct');
             t.end();
-
-            toy.removeListener('command', fn);
         });
 
         controller.command(cmdObj);
@@ -150,11 +147,9 @@ function startTests () {
 
         var statusTxt = 'Hi, I am here';
 
-        controller.on('status', function fn (respStatusTxt) {
+        controller.once('status', function fn (respStatusTxt) {
             t.equal(respStatusTxt, statusTxt, 'command was correct');
             t.end();
-
-            controller.removeListener('status', fn);
         });
 
         toy.status(statusTxt);

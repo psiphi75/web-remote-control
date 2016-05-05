@@ -11,9 +11,9 @@ CWD="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $CWD
 WRC_DIR=`pwd`/../
 
-PROXY_ERROR_LOG="proxyError.log"
-PROXY_LOG="proxy.log"
-WEB_LOG="wrcWebServer.log"
+PROXY_ERROR_LOG="${WRC_DIR}/proxyError.log"
+PROXY_LOG="${WRC_DIR}/proxy.log"
+WEB_LOG="${WRC_DIR}/wrcWebServer.log"
 
 
 #
@@ -38,7 +38,7 @@ forever start                        \
     --append                         \
     --watchDirectory $WRC_DIR/       \
     --watchDirectory $WRC_DIR/src/   \
-    -l ${DIR}/wrcWebServer.log       \
-    -e ${DIR}/wrcWebServer.log       \
+    -l ${WEB_LOG}                    \
+    -e ${WEB_LOG}                    \
     --uid www                        \
      WebServer.js
