@@ -70,9 +70,11 @@ function startController(channel) {
 
             displayConnectionStatus('connected');
 
-            controller.ping(function(t) {
-                logMessage('Ping: ' + t / 1000);
-            });
+            setInterval(function() {
+                controller.ping(function(t) {
+                    logReplaceMessage('Ping (ms): ', t);
+                });
+            }, 1000);
 
             controller.on('status', function(status) {
 
@@ -87,6 +89,7 @@ function startController(channel) {
                     displaySensorStatus(status, 'accel');
                     displaySensorStatus(status, 'gps');
                 }
+                logReplaceMessage('Time diff (ms): ', (new Date().getTime() - status.time));
 
             });
             controller.on('error', function(err) {
@@ -294,6 +297,22 @@ var COL_RED = '#d55';
 function clearLog() {       // eslint-disable-line no-unused-vars
     var el = $('#log>.card-block');
     el.html('');
+}
+
+function logReplaceMessage(key, value) {
+    value = value.toString();
+    var re = new RegExp('>' + key.replace('(', '\\(').replace(')', '\\)') + '[\\-0-9a-zA-Z]*<', 'g');
+
+    var el = $('#log>.card-block');
+    var matches = el.html().match(re);
+
+    if (matches === null) {
+        logMessage(key + value);
+    } else {
+        var newHtml = el.html().replace(re, '>' + key + value + '<');
+        el.html(newHtml);
+    }
+
 }
 
 function logMessage(message) {

@@ -152,6 +152,10 @@ var defaults = {
     // Allow connections to proxy via Socket.IO
     socketio: true
 
+    // Options for the proxy - should there be only one device (toy/controller) per channel?
+    onlyOneControllerPerChannel: false,
+    onlyOneToyPerChannel: false
+
 };
 ```
 

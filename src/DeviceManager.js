@@ -30,7 +30,10 @@ var makeUID = require('shortid').generate;
  * a given channel, both the toy and controller require the same channel.  There
  * can be multiple toys and controllers on the same channel.
  */
-function DeviceManager() {
+function DeviceManager(settings) {
+    settings = settings ? settings : {};
+    this.onlyOneControllerPerChannel = settings.onlyOneControllerPerChannel === true ? true : false;
+    this.onlyOneToyPerChannel = settings.onlyOneToyPerChannel === true ? true : false;
     this.list = {};
 }
 
@@ -59,6 +62,15 @@ DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
         return undefined;
     }
 
+    // Remove the controller / toy that already exists
+    if ((deviceType === 'controller' && this.onlyOneControllerPerChannel) ||
+        (deviceType === 'toy' && this.onlyOneToyPerChannel)) {
+         var devUID = this.findByDevTypeAndChan(deviceType, channel);
+         if (devUID) {
+             this.remove(devUID);
+         }
+    }
+
     var uid = makeUID();
     this.list[uid] = {
         deviceType: deviceType,
@@ -77,8 +89,16 @@ DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
  */
 DeviceManager.prototype.remove = function(uid) {
 
-    if (typeof this.list[uid] === 'undefined') {
+    var dev = this.list[uid];
+
+    if (typeof dev === 'undefined') {
         return false;
+    }
+
+    try {
+        dev.socket.close();
+    } catch (ex) {
+        // okay if there is an error - socket may already be closed.
     }
 
     try {
@@ -97,19 +117,22 @@ DeviceManager.prototype.remove = function(uid) {
 DeviceManager.prototype.removeBySocketId = function(socketId) {
 
     var uid = this.findBySocketId(socketId);
+    return this.remove(uid);
 
-    if (typeof this.list[uid] === 'undefined') {
-        return false;
-    }
-
-    try {
-        delete this.list[uid];
-    } catch (ex) {
-        return false;
-    }
-    return true;
 };
 
+
+DeviceManager.prototype.findByDevTypeAndChan = function(deviceType, channel) {
+    var self = this;
+    var foundUid = null;
+    Object.keys(this.list).forEach( function(uid) {
+        var dev = self.list[uid];
+        if (dev.deviceType === deviceType && dev.channel === channel) {
+            foundUid = uid;
+        }
+    });
+    return foundUid;
+};
 
 DeviceManager.prototype.findBySocketId = function(socketId) {
 

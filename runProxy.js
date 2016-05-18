@@ -28,4 +28,6 @@
  */
 
 var wrc = require('./index');
-wrc.createProxy({tcp: true});
+wrc.createProxy({ tcp: true,
+                  onlyOneControllerPerChannel: true,
+                  onlyOneToyPerChannel: true });

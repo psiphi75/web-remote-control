@@ -56,7 +56,7 @@ function ServerConnection (options) {
 util.inherits(ServerConnection, EventEmitter);
 
 /**
- * Start the SocketII server on the given port and address (optional)
+ * Start the SocketIO server on the given port and address (optional)
  * @param  {number} port    The port number to listen on.
  * @param  {string} address (optional) The IP address to listen on.
  */
@@ -71,7 +71,8 @@ ServerConnection.prototype.listenSocketIO = function() {
             address: socket.client.conn.remoteAddress,
             port: '????',
             socketId: socket.id,
-            socket: socket
+            socket: socket,
+            close: socket.close
         };
         socket.on('event', function(message) {
 
@@ -113,7 +114,8 @@ ServerConnection.prototype.listenUDP4 = function() {
             protocol: 'udp4',
             address: remote.address,
             port: remote.port,
-            socketId: remote.address + ':' + remote.port
+            socketId: remote.address + ':' + remote.port,
+            close: function () {}
         };
         handleMessage.bind(self)(message, socketInfo);
     });
@@ -139,7 +141,14 @@ ServerConnection.prototype.listenTCP = function() {
             address: socket.remoteAddress,
             port: socket.remotePort,
             socketId: socket.remoteAddress + ':' + socket.remotePort,
-            socket: socket
+            socket: socket,
+            close: function close() {
+                try {
+                    socket.destroy();
+                } catch (ex) {
+                    // okay if there is an error - socket may already be closed.
+                }
+            }
         };
         var stream = socket.pipe(split('\n'));
         stream.on('data', function(message) {

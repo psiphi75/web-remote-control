@@ -40,7 +40,7 @@ function Prox(settings) {
     var self = this;
     this.log = settings.log;
 
-    this.devices = new DevMan();
+    this.devices = new DevMan(settings);
     this.server = new ServerConnection(settings);
 
     this.server.on('listening', function (localPort, localAddress, protocol) {

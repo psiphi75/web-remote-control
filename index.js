@@ -53,7 +53,12 @@ var defaults = {
     udp4: true,
 
     // Allow connections to proxy via Socket.IO
-    socketio: true
+    socketio: true,
+
+    // Options for the proxy - should there be only one device (toy/controller) per channel?
+    onlyOneControllerPerChannel: false,
+    onlyOneToyPerChannel: false
+
 };
 
 // The proxy is the go-between server
@@ -84,6 +89,8 @@ function init(type) {
             tcp: parseFalsey(params.tcp, defaults.tcp),
             udp4: parseFalsey(params.udp4, defaults.udp4),
             socketio: parseFalsey(params.socketio, defaults.socketio),
+            onlyOneControllerPerChannel: parseFalsey(params.onlyOneControllerPerChannel, defaults.onlyOneControllerPerChannel),
+            onlyOneToyPerChannel: parseFalsey(params.onlyOneToyPerChannel, defaults.onlyOneToyPerChannel),
             deviceType: type
         };
 

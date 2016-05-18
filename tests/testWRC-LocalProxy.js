@@ -60,7 +60,12 @@ var toy;
 var controller;
 
 function createProxy() {
-    return wrc.createProxy({log: logging, udp4: UDP, tcp: TCP, socketio: false });
+    return wrc.createProxy({log: logging,
+                            udp4: UDP,
+                            tcp: TCP,
+                            socketio: false,
+                            onlyOneControllerPerChannel: true,
+                            onlyOneToyPerChannel: true });
 }
 function createController() {
     return wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
@@ -130,7 +135,7 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
     t.plan(2);
 
     // "Crash" the proxy - we simulate by removing the toy from DevMan
-    proxy.devices.remove(toy.uid);
+    delete proxy.devices.list[toy.uid];
 
     toy.once('error', function() {
         t.pass('proxy sent an error response, as expected');
@@ -222,6 +227,28 @@ test('The sequence numbers are handled and passed from device to toy', function(
 
         t.end();
     }
+
+});
+
+
+test('There can be only one device per channel', function(t){
+    t.plan(4);
+
+
+
+    t.equal(proxy.devices.getAll('toy', channel1).length, 1, 'There is only one toy to start with.');
+    var toy2 = createToy();
+    toy2.once('register', function() {
+        t.equal(proxy.devices.getAll('toy', channel1).length, 1, 'There is only one toy to end with.');
+        toy2.close();
+    });
+
+    t.equal(proxy.devices.getAll('controller', channel1).length, 1, 'There is only one controller to start with.');
+    var controller2 = createController();
+    controller2.once('register', function() {
+        t.equal(proxy.devices.getAll('controller', channel1).length, 1, 'There is only one controller to end with.');
+        controller2.close();
+    });
 
 });
 
