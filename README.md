@@ -82,18 +82,6 @@ See the `./www/public/index.html` file for the below example in action.
 </script>
 ```
 
-You can also run the `runProxyAndWebServer.js` file.  This will run the proxy and webserver on the same server. For example:
-
-```JavaScript
-node runProxyAndWebServer.js
-```
-
-You will then be able to browse to http://yourhost.com:8888/ with your mobile phone. This will serve the controller page for you, it will look like the image below.
-
-![Image of Controller screenshot](https://raw.githubusercontent.com/psiphi75/web-remote-control/master/res/rc-screenshot.png)
-
-Tilting the phone side-to-side and up and down will move the dot on the screen, this can be translated to remotely control a device.
-
 **The Controller (from node.js):**
 
 The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
@@ -173,9 +161,9 @@ var proxy = wrc.createProxy(settings);
 ## Known Issues and To-Do items
 
 Below are known issues, feel free to fix them.
-- Allow only one controller per channel.
 - Create listener device that can't remote control the device.  Would need to create a private and public channel.
 - Proxy default of UDP, fallback to TCP.
+- **Done** Allow only one controller per channel.
 - **Done**: Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
 - **Done**: Out of order packets are not handled, we should only use the most recent command packet.
 - **Done**: Add the creation of "web-remote-control.js" to the install (need to run build.sh) and include browserify as a global.
