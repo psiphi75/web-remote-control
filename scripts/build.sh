@@ -6,7 +6,7 @@
 TARGET="web-remote-control.js"
 
 SRC_DIR="../src"
-WWW_DIR="../www/public"
+WWW_DIR="../www"
 
 BRSFY=`which browserify`
 
