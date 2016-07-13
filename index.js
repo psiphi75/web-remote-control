@@ -68,6 +68,7 @@ exports.createProxy = init('proxy');
 exports.createToy = init('toy');
 exports.createController = init('controller');
 
+
 /**
  * Helper function to create an initialised device or proxy server.
  * @param  {string} type 'proxy', 'toy', or 'controller'.
@@ -107,8 +108,7 @@ function init(type) {
             case 'toy':
             case 'controller':
                 var Device = require('./src/Device');
-                var ClientConnection = require('./src/ClientConnection');
-                return new Device(settings, ClientConnection);
+                return new Device(settings);
 
             default:
                 throw new Error('Could not determine server type.');

@@ -31,7 +31,8 @@ var errors = require('./errors.js');
 
 var NET_TIMEOUT = 5 * 1000;
 
-function Device(settings, Connection) {
+function Device(settings) {
+
     this.proxyUrl = settings.proxyUrl;
     this.port = settings.port;
 
@@ -54,7 +55,9 @@ function Device(settings, Connection) {
     this.log = settings.log || function() {};
 
     this.pingManager = new PingManager();
-    this.connection = new Connection(settings);
+
+    var ClientConnection = require('./ClientConnection');
+    this.connection = new ClientConnection(settings);
 
     this.uid = undefined;
 
