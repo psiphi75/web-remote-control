@@ -44,13 +44,15 @@ var defaults = {
 
     // This determines the logging to use.  By default it logs to the standard
     // console.
-    log: console.log,
+    log: function () {
+        console.log.apply(console, arguments);
+    },
 
     // Use the TCP Protocol - only the proxy can use both TCP and UDP.
     tcp: true,
 
     // Use the UDP protocol - only the proxy can use both TCP and UDP.
-    udp4: true,
+    udp4: false,
 
     // Allow connections to proxy via Socket.IO
     socketio: true,
@@ -64,13 +66,12 @@ var defaults = {
 
 };
 
-// The proxy is the go-between server
-exports.createProxy = init('proxy');
-
-// The controller and contolled device (toy) use the same functionality.
-exports.createToy = init('toy');
-exports.createController = init('controller');
-exports.createObserver = init('observer');
+module.exports = {
+    createProxy: init('proxy'),
+    createToy: init('toy'),
+    createController: init('controller'),
+    createObserver: init('observer')
+};
 
 
 /**
@@ -107,14 +108,27 @@ function init(type) {
         switch (type) {
 
             case 'proxy':
+                if (isBrowser()) {
+                    console.error('Cannot create proxy in browser');
+                }
                 var Proxy = require('./src/Proxy');
                 return new Proxy(settings);
 
             case 'toy':
             case 'controller':
             case 'observer':
+                var connectionModule;
+                if (isBrowser()) {
+                    connectionModule = require('./src/WebClientConnection');
+                    settings.udp4 = false;
+                    settings.tcp = false;
+                    settings.socketio = true;
+                } else {
+                    connectionModule = require('./src/ClientConnection');
+                    settings.socketio = false;
+                }
                 var Device = require('./src/Device');
-                return new Device(settings);
+                return new Device(settings, connectionModule);
 
             default:
                 throw new Error('Could not determine server type.');
@@ -128,4 +142,8 @@ function parseFalsey(val1, val2) {
         return val2;
     }
     return val1;
+}
+
+function isBrowser() {
+    return !(typeof window === 'undefined');
 }

@@ -61,7 +61,7 @@ DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
     }
 
     if (!this.validDeviceType(deviceType)) {
-        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObserver is true), not: ', deviceType);
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObservers is true), not: ', deviceType);
         return undefined;
     }
 
@@ -204,7 +204,7 @@ DeviceManager.prototype.getSocket = function(uid) {
 DeviceManager.prototype.getAll = function(deviceType, channel) {
 
     if (!this.validDeviceType(deviceType)) {
-        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObserver is true), not: ', deviceType);
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObservers is true), not: ', deviceType);
         return undefined;
     }
 

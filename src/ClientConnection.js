@@ -38,7 +38,7 @@ function ClientConnection(options) {
         throw new Error('Both udp and tcp are set as protocol.  Devices can only communicate in one protocol.');
     }
     if (options.udp4 === false && options.tcp === false) {
-        throw new Error('Niether UDP or TCP is set.  Devices must communicate in one protocol.');
+        throw new Error('Neither UDP or TCP is set.  Devices must communicate in one protocol.');
     }
 
     if (options.udp4) {

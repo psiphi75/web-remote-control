@@ -31,7 +31,7 @@ var errors = require('./errors.js');
 
 var NET_TIMEOUT = 5 * 1000;
 
-function Device(settings) {
+function Device(settings, ClientConnection) {
 
     this.proxyUrl = settings.proxyUrl;
     this.port = settings.port;
@@ -55,10 +55,7 @@ function Device(settings) {
     this.log = settings.log || function() {};
 
     this.pingManager = new PingManager();
-
-    var ClientConnection = require('./ClientConnection');
     this.connection = new ClientConnection(settings);
-
     this.uid = undefined;
 
     // This keeps a track of ther controller sequenceNumber.  If a command with
@@ -230,6 +227,7 @@ Device.prototype.send = function(type, data) {
  * Close all connections.
  */
 Device.prototype.close = function() {
+    this.uid = undefined;
     this.clearRegisterTimeout();
     if (this.timeoutHandle) {
         clearTimeout(this.timeoutHandle);
@@ -240,6 +238,13 @@ Device.prototype.close = function() {
     this.removeAllListeners();
     this.connection.removeAllListeners();
     this.pingManager.close();
+};
+
+/**
+ * Checks if the device is registered or not.
+ */
+Device.prototype.isRegistered = function() {
+    return typeof this.uid === 'string';
 };
 
 

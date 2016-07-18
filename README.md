@@ -59,14 +59,13 @@ toy.on('command', function(cmd) {
 
 **The Controller (from browser):**
 
-See the `./www/public/index.html` file for the below example in action.
-
 ```html
 <script src="./web-remote-control.js"></script>
 <script src="https://cdn.socket.io/socket.io-1.4.4.js"></script>
 <script>
-    var Device = require('Device');
-    var controller = new Device({ proxyUrl: 'localhost', deviceType:'controller' }, require('WebClientConnection'));
+
+    var wrc = require('web-remote-control');
+    var controller = wrc.createController({ proxyUrl: 'your proxy url' });
 
     controller.connection.socket.on('connect', function() {
         controller.on('register', function() {
@@ -144,6 +143,9 @@ var defaults = {
     onlyOneControllerPerChannel: false,
     onlyOneToyPerChannel: false
 
+    // A listener is can only see the Toy's status.  It cannot send control commands.
+    allowObservers: false,
+
 };
 ```
 
@@ -161,8 +163,8 @@ var proxy = wrc.createProxy(settings);
 ## Known Issues and To-Do items
 
 Below are known issues, feel free to fix them.
-- Create listener device that can't remote control the device.  Would need to create a private and public channel.
 - Proxy default of UDP, fallback to TCP.
+- **Done**: Create observer device that can't remote control the device.
 - **Done** Allow only one controller per channel.
 - **Done**: Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
 - **Done**: Out of order packets are not handled, we should only use the most recent command packet.
