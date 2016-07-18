@@ -34,6 +34,11 @@ module.exports = {
         code: '9001',
         message: 'The specified code error was not found.'
     },
+    PERMISSION_DENIED: {
+        type: 'PERMISSION_DENIED',
+        code: '5001',
+        message: 'The action is not allowed.'
+    },
 
     getByCode: function (code) {
 

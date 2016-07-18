@@ -25,6 +25,7 @@
 
 var makeUID = require('shortid').generate;
 
+
 /**
  * The DeviceManager manages toys and controllers (devices).  Devices operate on
  * a given channel, both the toy and controller require the same channel.  There
@@ -34,12 +35,14 @@ function DeviceManager(settings) {
     settings = settings ? settings : {};
     this.onlyOneControllerPerChannel = settings.onlyOneControllerPerChannel === true ? true : false;
     this.onlyOneToyPerChannel = settings.onlyOneToyPerChannel === true ? true : false;
+    this.allowObservers = settings.allowObservers === true ? true : false;
     this.list = {};
 }
 
+
 /**
  * Add a new toy/controller to the device manager.
- * @param  {string} deviceType    'toy' or 'controller'.
+ * @param  {string} deviceType    'toy' or 'controller' or 'observer'.
  * @param  {string} channel The channel to operate on (this is provided by the device).
  * @param  {object} socket  The socket details.
  * @param  {number} seqNum  The sequence number from the device.
@@ -58,14 +61,14 @@ DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
     }
 
     if (!this.validDeviceType(deviceType)) {
-        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller", not: ', deviceType);
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObserver is true), not: ', deviceType);
         return undefined;
     }
 
     // Remove the controller / toy that already exists
     if ((deviceType === 'controller' && this.onlyOneControllerPerChannel) ||
         (deviceType === 'toy' && this.onlyOneToyPerChannel)) {
-         var devUID = this.findByDevTypeAndChan(deviceType, channel);
+         var devUID = this.findByDeviceTypeAndChannel(deviceType, channel);
          if (devUID) {
              this.remove(devUID);
          }
@@ -81,6 +84,7 @@ DeviceManager.prototype.add = function(deviceType, channel, socket, seqNum) {
     return uid;
 
 };
+
 
 /**
  * Remove a device from the device manager.
@@ -109,6 +113,29 @@ DeviceManager.prototype.remove = function(uid) {
     return true;
 };
 
+
+/**
+ * Checks if the device is allowed the given action
+ * @param  {string} uid         The UID of the device
+ * @param  {string} actionType  The action to test
+ * @return {boolean}     true if action is allowed, otherwise false.
+ */
+DeviceManager.prototype.isAllowedAction = function(uid, actionType) {
+
+    var dev = this.list[uid];
+
+    if (typeof dev === 'undefined') {
+        return false;
+    }
+
+    if (dev.deviceType === 'toy' && actionType === 'status') return true;
+    if (dev.deviceType === 'controller' && actionType === 'command') return true;
+
+    return false;
+
+};
+
+
 /**
  * Remove a device from the device manager.
  * @param  {string} uid The UID
@@ -122,7 +149,7 @@ DeviceManager.prototype.removeBySocketId = function(socketId) {
 };
 
 
-DeviceManager.prototype.findByDevTypeAndChan = function(deviceType, channel) {
+DeviceManager.prototype.findByDeviceTypeAndChannel = function(deviceType, channel) {
     var self = this;
     var foundUid = null;
     Object.keys(this.list).forEach( function(uid) {
@@ -134,8 +161,8 @@ DeviceManager.prototype.findByDevTypeAndChan = function(deviceType, channel) {
     return foundUid;
 };
 
-DeviceManager.prototype.findBySocketId = function(socketId) {
 
+DeviceManager.prototype.findBySocketId = function(socketId) {
     var self = this;
     var foundUid = null;
     Object.keys(this.list).forEach( function(uid) {
@@ -167,6 +194,7 @@ DeviceManager.prototype.getSocket = function(uid) {
     return this.list[uid].socket;
 };
 
+
 /**
  * Get all devices on a channel.  But only by device type (toy/controller).
  * @param  {string} deviceType    'toy' or 'controllers'
@@ -176,7 +204,7 @@ DeviceManager.prototype.getSocket = function(uid) {
 DeviceManager.prototype.getAll = function(deviceType, channel) {
 
     if (!this.validDeviceType(deviceType)) {
-        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller", not: ', deviceType);
+        console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObserver is true), not: ', deviceType);
         return undefined;
     }
 
@@ -217,6 +245,7 @@ DeviceManager.prototype.update = function(uid, socket, seqNum) {
     return device;
 };
 
+
 /**
  * Make sure the sequence number is okay.
  * @param  {string} uid    UID for the device
@@ -240,6 +269,7 @@ DeviceManager.prototype.isLatestSeqNum = function(uid, seqNum) {
     return true;
 };
 
+
 /**
  * Confirm the device type is correct.
  * @param  {string} type The name of the device to check.
@@ -250,6 +280,8 @@ DeviceManager.prototype.validDeviceType = function(deviceType) {
         case 'toy':
         case 'controller':
             return true;
+        case 'observer':    // observer only valid if allowObserver === true
+            return this.allowObservers;
         default:
             return false;
     }

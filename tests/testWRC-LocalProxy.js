@@ -65,7 +65,8 @@ function createProxy() {
                             tcp: TCP,
                             socketio: false,
                             onlyOneControllerPerChannel: true,
-                            onlyOneToyPerChannel: true });
+                            onlyOneToyPerChannel: true,
+                            allowObservers: true });
 }
 function createController() {
     return wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
@@ -73,7 +74,9 @@ function createController() {
 function createToy() {
     return wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
 }
-
+function createObserver() {
+    return wrc.createObserver({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+}
 
 test('Test Proxy can be created and a toy can be registered', function(t) {
 
@@ -128,6 +131,29 @@ test('Test controller can send commands to proxy', function(t) {
     });
 
 });
+
+
+test('Test observer can register and receive status updates from the toy', function(t) {
+
+    t.plan(2);
+
+    var statusTxt = 'This is my status';
+
+    var observer = createObserver();
+    observer.once('register', function fnReg() {
+        controller.command(statusTxt);
+        t.pass('Observer can register');
+        toy.status(statusTxt);
+    });
+    observer.once('status', function fnReg(status) {
+        observer.close();
+        t.equal(status, statusTxt, 'status is correct');
+        t.end();
+    });
+
+
+});
+
 
 
 test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-registers', function(t) {
@@ -233,8 +259,6 @@ test('The sequence numbers are handled and passed from device to toy', function(
 
 test('There can be only one device per channel', function(t){
     t.plan(4);
-
-
 
     t.equal(proxy.devices.getAll('toy', channel1).length, 1, 'There is only one toy to start with.');
     var toy2 = createToy();

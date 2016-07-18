@@ -57,7 +57,10 @@ var defaults = {
 
     // Options for the proxy - should there be only one device (toy/controller) per channel?
     onlyOneControllerPerChannel: false,
-    onlyOneToyPerChannel: false
+    onlyOneToyPerChannel: false,
+
+    // A listener is can only see the Toy's status.  It cannot send control commands.
+    allowObservers: false,
 
 };
 
@@ -67,6 +70,7 @@ exports.createProxy = init('proxy');
 // The controller and contolled device (toy) use the same functionality.
 exports.createToy = init('toy');
 exports.createController = init('controller');
+exports.createObserver = init('observer');
 
 
 /**
@@ -92,6 +96,7 @@ function init(type) {
             socketio: parseFalsey(params.socketio, defaults.socketio),
             onlyOneControllerPerChannel: parseFalsey(params.onlyOneControllerPerChannel, defaults.onlyOneControllerPerChannel),
             onlyOneToyPerChannel: parseFalsey(params.onlyOneToyPerChannel, defaults.onlyOneToyPerChannel),
+            allowObservers: parseFalsey(params.allowObservers, defaults.allowObservers),
             deviceType: type
         };
 
@@ -107,6 +112,7 @@ function init(type) {
 
             case 'toy':
             case 'controller':
+            case 'observer':
                 var Device = require('./src/Device');
                 return new Device(settings);
 

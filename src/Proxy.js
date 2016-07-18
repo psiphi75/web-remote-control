@@ -26,13 +26,13 @@
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 
-var DevMan = require('./DeviceManager');
+var DeviceManager = require('./DeviceManager');
 var ServerConnection = require('./ServerConnection');
 var errors = require('./errors.js');
 
 /**
- * This is the proxy server.  It is the "man in the middle".  Devices (toys and
- * controllers) connect to the proxy server.
+ * This is the proxy server.  It is the "man in the middle".  Devices (toys,
+ * controllers and observers) connect to the proxy server.
  * @param {object} settings (optional) Settings as defined by the help.
  */
 function Prox(settings) {
@@ -40,7 +40,7 @@ function Prox(settings) {
     var self = this;
     this.log = settings.log;
 
-    this.devices = new DevMan(settings);
+    this.devices = new DeviceManager(settings);
     this.server = new ServerConnection(settings);
 
     this.server.on('listening', function (localPort, localAddress, protocol) {
@@ -108,8 +108,8 @@ Prox.prototype.registerDevice = function(msgObj) {
 
 
 /**
- * Return a ping to a toy/controller.
- * @param  {object} msgObj The message object sent by the toy/controller.
+ * Return a ping to a toy/controller/observer.
+ * @param  {object} msgObj The message object sent by the toy/controller/observer.
  * @param  {object} remote The sender socket
  */
 Prox.prototype.respondToPing = function(msgObj) {
@@ -133,17 +133,18 @@ Prox.prototype.respondToPing = function(msgObj) {
  * @param  {object} remote The sender socket.
  */
 Prox.prototype.forwardCommand = function(msgObj) {
-    this.forward('toy', msgObj);
+    this.forward('command', 'toy', msgObj);
 };
 
 
 /**
- * Forward a command from a toy to a controller.
+ * Forward a status update from a toy to a controller/observer.
  * @param  {object} msgObj The message object we are forwarding.
  * @param  {object} remote The sender socket.
  */
 Prox.prototype.forwardStatus = function(msgObj) {
-    this.forward('controller', msgObj);
+    this.forward('status', 'controller', msgObj);
+    this.forward('status', 'observer', msgObj);
 };
 
 
@@ -155,13 +156,21 @@ Prox.prototype.forwardStatus = function(msgObj) {
  * @param  {object} msgObj The message object we are forwarding.
  * @param  {object} remote The sender socket.
  */
-Prox.prototype.forward = function(forwardToType, msgObj) {
+Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
 
     var self = this;
-    var remoteDevice = this.devices.get(msgObj.uid);
-    if (!remoteDevice) {
+
+    var sendingDevice = this.devices.get(msgObj.uid);
+    if (!sendingDevice) {
         this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
         console.error('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
+        return;
+    }
+
+    // Check the device is allowed this type of action
+    if (!this.devices.isAllowedAction(msgObj.uid, actionType)) {
+        this.respondError(msgObj, errors.PERMISSION_DENIED);
+        console.error('Prox.forwardCommand(): Action not allowed for ' + sendingDevice.deviceType + ': ', msgObj.uid);
         return;
     }
 
@@ -173,10 +182,10 @@ Prox.prototype.forward = function(forwardToType, msgObj) {
 
     this.devices.update(msgObj.uid, msgObj.socket, msgObj.seq);
 
-    var uidList = this.devices.getAll(forwardToType, remoteDevice.channel);
+    var uidList = this.devices.getAll(forwardToType, sendingDevice.channel);
 
     uidList.forEach(function(uid) {
-        var sendToDevice = {
+        var receivingDevice = {
             type: msgObj.type,
             seq: msgObj.seq,
             uid: uid,
@@ -184,7 +193,7 @@ Prox.prototype.forward = function(forwardToType, msgObj) {
             socket: self.devices.getSocket(uid)
         };
 
-        self.send(sendToDevice);
+        self.send(receivingDevice);
     });
 
     this.emit(msgObj.type, msgObj);
