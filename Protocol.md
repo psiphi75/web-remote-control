@@ -23,7 +23,7 @@ This section describes the protocol in detail.  All messages are JSON strings an
    raw TCP or UDP.
 
 Below is the structure of all messages.  The `Unique ID` is not always present.
-```JSON
+```Text
 {
   "type": [String: Message type],
   "seq": [Integer: Sequence Number],
