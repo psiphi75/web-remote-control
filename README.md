@@ -1,4 +1,5 @@
 # Web Remote Control
+
 This module allows you to control an IoT (Internet of Things) device from the web (e.g. your mobile phone).  This is a complete remote control solution that includes the following components:
 - A Proxy - runs on a server and needs to be accessible to the Controller and Toy.
 - The Controller - this can be via web or node.js.
@@ -159,6 +160,11 @@ var settings = {
 };
 var proxy = wrc.createProxy(settings);
 ```
+
+## Communication Protocol
+
+In case you want to build your own client/server (Device/Proxy) in another language the Protocol for web-remote-control
+has been described [here](https://github.com/psiphi75/web-remote-control/blob/master/Protocol.md).
 
 ## Known Issues and To-Do items
 
