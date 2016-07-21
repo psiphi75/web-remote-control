@@ -79,7 +79,7 @@ PingManager.prototype.handleIncomingPing = function(pingId, time) {
     try {
         delete this.pingList[pingId];
     } catch (ex) {
-        console.error('Did not expect this.');
+        this.log('Did not expect this.');
     }
 
 };

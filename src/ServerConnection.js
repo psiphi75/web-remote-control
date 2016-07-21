@@ -81,13 +81,13 @@ ServerConnection.prototype.listenSocketIO = function() {
                 message = new Buffer(message.data);
             }
 
-            handleMessage.bind(self)(message, socketInfo);
+            self.handleMessage.bind(self)(message, socketInfo);
         });
         socket.on('close', function() {
             self.emit('socket-close', socketInfo.socketId);
         });
     });
-    this.socketio.on('error', handleError);
+    this.socketio.on('error', this.handleError);
     this.socketio.listen(SOCKET_IO_PORT);
 
 
@@ -106,7 +106,7 @@ ServerConnection.prototype.listenUDP4 = function() {
 
     var dgram = require('dgram');
     this.udp4 = dgram.createSocket('udp4');
-    this.udp4.on('error', handleError);
+    this.udp4.on('error', this.handleError);
 
     var self = this;
     this.udp4.on('message', function (message, remote) {
@@ -117,7 +117,7 @@ ServerConnection.prototype.listenUDP4 = function() {
             socketId: remote.address + ':' + remote.port,
             close: function () {}
         };
-        handleMessage.bind(self)(message, socketInfo);
+        self.handleMessage.bind(self)(message, socketInfo);
     });
 
     this.udp4.on('listening', function () {
@@ -152,15 +152,15 @@ ServerConnection.prototype.listenTCP = function() {
         };
         var stream = socket.pipe(split('\n'));
         stream.on('data', function(message) {
-            handleMessage.bind(self)(message, socketInfo);
+            self.handleMessage.bind(self)(message, socketInfo);
         });
         stream.on('close', function() {
             self.emit('socket-close', socketInfo.socketId);
         });
-        stream.on('error', handleError);
+        stream.on('error', self.handleMessage.bind(self));
 
     });
-    this.tcp.on('error', handleError);
+    this.tcp.on('error', this.handleError);
     this.tcp.on('listening', function () {
         self.emit('listening', self.port, self.proxyUrl, 'tcp');
     });
@@ -168,12 +168,16 @@ ServerConnection.prototype.listenTCP = function() {
 
 };
 
-function handleError(err) {
-    console.log(err);
+ServerConnection.prototype.handleError = function(err) {
+    if (typeof this.log === 'function') {
+        this.log(err);
+    } else {
+        console.error(err);
+    }
     this.emit('error', err);
-}
+};
 
-function handleMessage(message, socketInfo) {
+ServerConnection.prototype.handleMessage = function(message, socketInfo) {
 
     var enable_compression = socketInfo.protocol === 'udp4';
     var msgObj;
@@ -193,7 +197,7 @@ function handleMessage(message, socketInfo) {
     this.emit(msgObj.type, msgObj);
 
     this.log(new Date(), socketInfo.address + ':' + socketInfo.port, msgObj.type, msgObj.channel || msgObj.uid, msgObj.seq, msgObj.data);
-}
+};
 
 
 /**
@@ -234,7 +238,7 @@ ServerConnection.prototype.send = function(msgObj) {
         try {
             socketInfo.socket.write(msgComp);
         } catch (ex) {
-            console.error('ServerConnection.send():error: ', ex);
+            this.log('ServerConnection.send():error: ', ex);
         }
         return;
     }

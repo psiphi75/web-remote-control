@@ -163,14 +163,14 @@ Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
     var sendingDevice = this.devices.get(msgObj.uid);
     if (!sendingDevice) {
         this.respondError(msgObj, errors.DEVICE_NOT_REGISTERED);
-        console.error('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
+        this.log('Prox.forwardCommand(): remote device not found: ', msgObj.uid);
         return;
     }
 
     // Check the device is allowed this type of action
     if (!this.devices.isAllowedAction(msgObj.uid, actionType)) {
         this.respondError(msgObj, errors.PERMISSION_DENIED);
-        console.error('Prox.forwardCommand(): Action not allowed for ' + sendingDevice.deviceType + ': ', msgObj.uid);
+        this.log('Prox.forwardCommand(): Action not allowed for ' + sendingDevice.deviceType + ': ', msgObj.uid);
         return;
     }
 
