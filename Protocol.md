@@ -36,10 +36,17 @@ Below is the structure of all messages.  The `Unique ID` is not always present.
 The message needs to be standard JSON format, so white space does not matter.  For all
 examples in the documentation whitespace is included for clarity.
 
-A newline character must be at the end of every message.  This helps seperate messages
-when communciating over Socket.io, although it is required for all protocols.
+A newline character must be at the end of every message.  This helps separate messages
+when communicating over Socket.io, although it is required for all protocols.
 
 No acknowledgment packets are sent at all, this is left up to the network layer.
+
+### New Lines
+
+As mentioned above, all messages should end with newline character.
+
+There must be no new-line characters in the JSON anywhere, including the text fields.
+
 
 ### Message fields
 
@@ -110,7 +117,7 @@ Example response from proxy.
 
 #### command
 
-This type of message is sent by contoller devices and propagated to toy devices.
+This type of message is sent by controller devices and propagated to toy devices.
 
 * *Senders*: controller
 * *Final recipient*: toy (via proxy)
@@ -182,14 +189,14 @@ It can be used to keep the network connection active, which may be necessary for
 * *Final recipient*: The sending device
 * *Mandatory fields*: `type`, `seq`, `uid`, `data`
 * *Data*: The `data` field can contain any valid JSON type.  
-* *Response from proxy to sender*: On receving a ping the proxy
+* *Response from proxy to sender*: On receiving a ping the proxy
           will return the the message immediately.  The fields returned are:
     * `type`: "ping".
     * `seq`: Same value as in the request message.
     * `uid`: Same value as in the request message.
     * `data`: Same value as in the request message.
 
-Note: you can send a time value and then calcuate the round trip time.
+Note: you can send a time value and then calculate the round trip time.
 
 Example message to proxy:
 ```JSON
@@ -214,13 +221,13 @@ Example response from proxy.
 
 #### error
 
-This message is sent by the proxy only, and always in response to a mesasge from the device.
+This message is sent by the proxy only, and always in response to a message from the device.
 
 * *Senders*: proxy, on a request from a device
 * *Final recipient*: The sending device
 * *Mandatory fields*: n/a
 * *Data*: The `data` field can contain any valid JSON type.  
-* *Response from proxy to sender*: On receving a ping the proxy will return the the message immediately.  The fields returned are:
+* *Response from proxy to sender*: On receiving a ping the proxy will return the the message immediately.  The fields returned are:
     * `type`: "error".
     * `seq`: Same value as in the request message.
     * `uid`: null
