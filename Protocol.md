@@ -17,10 +17,10 @@ registers.  All devices on a channel can only talk between themselves.
 
 This section describes the protocol in detail.  All messages are JSON strings and passed over the respective network
  layer:
- - UDP the packet must fit into one UDP packet. See the *Note on UDP and smaz* section below.
- - A TCP socket
+ - UDP the packet must fit into one UDP packet. See the *Note on UDP and smaz* section below. Default port is 33330.
+ - A TCP socket.  Default port is 33330.
  - Socket.io is used for web browser to proxy communication.  Because web browser communication does not support
-   raw TCP or UDP.
+   raw TCP or UDP.  Default port is TCP 33331.
 
 Below is the structure of all messages.  The `Unique ID` is not always present.
 ```Text
