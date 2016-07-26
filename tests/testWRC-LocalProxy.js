@@ -80,7 +80,7 @@ function createObserver() {
 
 test('Test Proxy can be created and a toy can be registered', function(t) {
 
-    t.plan(4);
+    t.plan(5);
     var tests = 0;
 
     var uid1;
@@ -96,9 +96,10 @@ test('Test Proxy can be created and a toy can be registered', function(t) {
     });
 
     toy = createToy();
-    toy.once('register', function fnReg(msgUid) {
-        t.true(typeof msgUid === 'string', 'the uid is the correct type');
-        uid2 = msgUid;
+    toy.once('register', function fnReg(msgObj) {
+        t.true(typeof msgObj === 'object', 'the response msgObj is the correct type');
+        t.equal(channel1, msgObj.channel, 'The channel is correct');
+        uid2 = msgObj.uid;
 
         tests += 1;
         wrapUp();
@@ -155,10 +156,9 @@ test('Test observer can register and receive status updates from the toy', funct
 });
 
 
-
 test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-registers', function(t) {
 
-    t.plan(2);
+    t.plan(4);
 
     // "Crash" the proxy - we simulate by removing the toy from DevMan
     delete proxy.devices.list[toy.uid];
@@ -167,8 +167,11 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
         t.pass('proxy sent an error response, as expected');
     });
 
-    toy.once('register', function(msgUid) {
-        t.true(typeof msgUid === 'string', '... and we re-registered okay');
+    toy.once('register', function(msgObj) {
+        t.true(typeof msgObj === 'object', '... and we re-registered okay');
+        t.true(typeof msgObj.uid === 'string', '... and uid returned');
+        t.true(typeof msgObj.channel === 'string', '... and channel returned');
+
         t.end();
     });
 

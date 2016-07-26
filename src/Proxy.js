@@ -100,7 +100,10 @@ Prox.prototype.registerDevice = function(msgObj) {
 
     var uid = this.devices.add(deviceType, channel, msgObj.socket, msgObj.seq);
     msgObj.uid = uid;
-    msgObj.data = uid;
+    msgObj.data = {
+        channel: channel,
+        uid: uid
+    };
 
     this.send(msgObj, this.devices.get(uid));
     this.emit(msgObj.type, msgObj);
