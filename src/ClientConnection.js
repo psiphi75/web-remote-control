@@ -120,7 +120,11 @@ ClientConnection.prototype.createProxySocket = function (protocol, address, port
 ClientConnection.prototype.closeAll = function() {
 
     if (this.udp4) {
-        this.udp4.close();
+        try {
+            this.udp4.close();
+        } catch (ex) {
+            this.log('ERROR: ClientConnection.closeAll(): error closing udp4: ', ex);
+        }
     }
 
     if (this.tcp) {
