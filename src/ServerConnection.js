@@ -223,7 +223,7 @@ ServerConnection.prototype.closeAll = function() {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-ServerConnection.prototype.send = function(msgObj) {
+ServerConnection.prototype._send = function(msgObj) {
 
     var socketInfo = msgObj.socket;
     var enable_compression = socketInfo.protocol === 'udp4';
@@ -238,7 +238,7 @@ ServerConnection.prototype.send = function(msgObj) {
         try {
             socketInfo.socket.write(msgComp);
         } catch (ex) {
-            this.log('ServerConnection.send():error: ', ex);
+            this.log('ServerConnection._send():error: ', ex);
         }
         return;
     }

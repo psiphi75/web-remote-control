@@ -105,7 +105,7 @@ Prox.prototype.registerDevice = function(msgObj) {
         uid: uid
     };
 
-    this.send(msgObj, this.devices.get(uid));
+    this._send(msgObj, this.devices.get(uid));
     this.emit(msgObj.type, msgObj);
 };
 
@@ -125,7 +125,7 @@ Prox.prototype.respondToPing = function(msgObj) {
         return;
     }
 
-    this.send(msgObj);
+    this._send(msgObj);
     this.emit(msgObj.type, msgObj);
 };
 
@@ -196,7 +196,7 @@ Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
             socket: self.devices.getSocket(uid)
         };
 
-        self.send(receivingDevice);
+        self._send(receivingDevice);
     });
 
     this.emit(msgObj.type, msgObj);
@@ -209,8 +209,8 @@ Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
  * @param  {object} msgObj The object to send as JSON.
  * @param  {object} device The device to send this to.
  */
-Prox.prototype.send = function(msgObj) {
-    this.server.send(msgObj);
+Prox.prototype._send = function(msgObj) {
+    this.server._send(msgObj);
 };
 
 
@@ -227,7 +227,7 @@ Prox.prototype.respondError = function (msgObj, errorType) {
         data: errorType.code,
         socket: msgObj.socket
     };
-    this.send(responseObj);
+    this._send(responseObj);
 };
 
 Prox.prototype.handleError = function(err) {

@@ -93,14 +93,14 @@ function handleMessage(message) {
  * @param  {string} address The remote address.
  * @param  {number} remote The remote port.
  */
-WebClientConnection.prototype.send = function(msgObj) {
+WebClientConnection.prototype._send = function(msgObj) {
 
     var sendBuffer = messageHandler.packOutgoingMessage(msgObj);
 
     try {
         this.socket.emit('event', sendBuffer);
     } catch (ex) {
-        console.error('WebClientConnection.send(): ', ex);
+        console.error('WebClientConnection._send(): ', ex);
     }
 
 };

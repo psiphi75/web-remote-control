@@ -139,7 +139,7 @@ ClientConnection.prototype.closeAll = function() {
  * @param  {object} msgObj   The message and socket.
  * @param  {function} callback (optional)
  */
-ClientConnection.prototype.send = function(msgObj, callback) {
+ClientConnection.prototype._send = function(msgObj, callback) {
 
     callback = callback || function () {};
 

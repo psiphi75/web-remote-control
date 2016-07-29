@@ -128,7 +128,7 @@ Device.prototype.register = function () {
 
     this.clearRegisterTimeout();
 
-    this.send('register', {
+    this._send('register', {
         deviceType: this.deviceType,
         channel: this.channel
     });
@@ -166,7 +166,7 @@ Device.prototype.ping = function(callback) {
     this.pingManager.add(this.mySeqNum, callback);
 
     var timeStr = (new Date().getTime()).toString();
-    this.send('ping', timeStr);
+    this._send('ping', timeStr);
 
 };
 
@@ -178,7 +178,7 @@ Device.prototype.ping = function(callback) {
  * @param  {string} data The data, it must be a string.
  */
 Device.prototype.status = function (msgString) {
-    this.send('status', msgString);
+    this._send('status', msgString);
 };
 
 
@@ -194,7 +194,7 @@ Device.prototype.command = function (msgString) {
         throw new Error('Only controllers can send commands.');
     }
 
-    this.send('command', msgString);
+    this._send('command', msgString);
 };
 
 
@@ -203,10 +203,10 @@ Device.prototype.command = function (msgString) {
  * @param  {string} type The message type we are sending.
  * @param  {string} data The data, it must be a string.
  */
-Device.prototype.send = function(type, data) {
+Device.prototype._send = function(type, data) {
 
     if (!this.uid && type !== 'register') {
-        this.log('Device.send(): Not yet registered.');
+        this.log('Device._send(): Not yet registered.');
         return;
     }
 
@@ -218,7 +218,7 @@ Device.prototype.send = function(type, data) {
     };
 
     // Send the message to the proxy.  Use the IP have we have determined it.
-    this.connection.send(msgObj);
+    this.connection._send(msgObj);
     this.mySeqNum += 1;
 };
 
