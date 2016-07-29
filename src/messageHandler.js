@@ -60,9 +60,10 @@ exports.parseIncomingMessage = function(message, enable_compression) {
         case 'register':
             requiresList = ['type', 'seq', 'data'];
             break;
-        case 'ping':
+
         case 'status':
         case 'command':
+        case 'ping':
         case 'error':
             requiresList = ['type', 'seq', 'data', 'uid'];
             break;
@@ -71,15 +72,11 @@ exports.parseIncomingMessage = function(message, enable_compression) {
     }
 
     /* Check the properties are all valid */
-    var count = 0;
-    for (var key in msgObj) {
-        if (msgObj.hasOwnProperty(key) && requiresList.indexOf(key) >= 0) {
-            count += 1;
+    requiresList.forEach(function(req) {
+        if (!msgObj.hasOwnProperty(req)) {
+            throw new Error('The message that arrived is not valid, it does not contain a property: ' + req);
         }
-    }
-    if (count !== requiresList.length) {
-        throw new Error('The message that arrived is not valid, it has too many or two few properties: ' + msgObj.toString());
-    }
+    });
 
     return msgObj;
 };
@@ -99,6 +96,10 @@ exports.packOutgoingMessage = function(msgObj, enable_compression) {
     if (msgObj.hasOwnProperty('uid')) {
         cleanMsgObj.uid = msgObj.uid;
     }
+    if (msgObj.hasOwnProperty('sticky') && msgObj.sticky === true) {
+        cleanMsgObj.sticky = true;
+    }
+
     return compress(cleanMsgObj, enable_compression);
 
 };

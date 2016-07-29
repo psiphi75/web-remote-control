@@ -58,6 +58,8 @@ function Prox(settings) {
     this.server.on('status', this.forwardStatus.bind(this));
     this.server.on('command', this.forwardCommand.bind(this));
 
+    this.stickers = new Stickers();
+
     EventEmitter.call(this);
 
 }
@@ -105,8 +107,15 @@ Prox.prototype.registerDevice = function(msgObj) {
         uid: uid
     };
 
-    this._send(msgObj, this.devices.get(uid));
+    this._send(msgObj);
     this.emit(msgObj.type, msgObj);
+
+    //
+    // Send sticky stuff once registerd
+    //
+    var stickyMsgObj = this.stickers.get(channel, deviceType, msgObj);
+    if (stickyMsgObj === undefined) return;
+    this._send(stickyMsgObj);
 };
 
 
@@ -198,6 +207,7 @@ Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
 
         self._send(receivingDevice);
     });
+    self.stickers.set(sendingDevice.channel, msgObj.type, msgObj);
 
     this.emit(msgObj.type, msgObj);
 
@@ -207,7 +217,6 @@ Prox.prototype.forward = function(actionType, forwardToType, msgObj) {
 /**
  * This will send a message to the remote device.
  * @param  {object} msgObj The object to send as JSON.
- * @param  {object} device The device to send this to.
  */
 Prox.prototype._send = function(msgObj) {
     this.server._send(msgObj);
@@ -237,3 +246,37 @@ Prox.prototype.handleError = function(err) {
 };
 
 module.exports = Prox;
+
+
+function Stickers() {
+    this.status = {};
+    this.command = {};
+}
+
+Stickers.prototype.set = function(channel, type, msgObj) {
+    if (type !== 'command' && type !== 'status') return;
+    if (msgObj.sticky !== true) return;
+    this[type][channel] = {
+        type: type,
+        seq: msgObj.seq,
+        data: msgObj.data
+    };
+};
+
+Stickers.prototype.get = function(channel, deviceType, msgObj) {
+    var type;
+    if (deviceType === 'controller' || deviceType === 'observer') {
+        type = 'status';
+    } else {
+        type = 'command';
+    }
+    var stickyObj = this[type][channel];
+    if (stickyObj === undefined) return undefined;
+    return {
+        type: type,
+        seq: stickyObj.seq,
+        data: stickyObj.data,
+        uid: msgObj.uid,
+        socket: msgObj.socket
+    };
+};

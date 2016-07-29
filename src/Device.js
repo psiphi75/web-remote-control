@@ -183,6 +183,18 @@ Device.prototype.status = function (msgString) {
 
 
 /**
+ * Send a status to the remote proxy that is sticky - which gets forwarded to the
+ * receiver(s).  A sticky status will be held on the proxy on the given channel until
+ * the next message comes through.
+ * @param  {string} type The sticky type we are sending.
+ * @param  {string} data The data, it must be a string.
+ */
+Device.prototype.stickyStatus = function (msgString) {
+    this._send('status', msgString, {sticky: true});
+};
+
+
+/**
  * Send a command to the remote proxy - which gets forwarded to the
  * receiver(s).
  * @param  {string} type The command type we are sending.
@@ -197,13 +209,30 @@ Device.prototype.command = function (msgString) {
     this._send('command', msgString);
 };
 
+/**
+ * Send a command to the remote proxy that is sticky - which gets forwarded to the
+ * receiver(s).  A sticky command will be held on the proxy on the given channel until
+ * the next message comes through.
+ * @param  {string} type The command type we are sending.
+ * @param  {string} data The data, it must be a string.
+ * @param  {object} options Additional options - read the code.
+ */
+Device.prototype.stickyCommand = function (msgString) {
+
+    if (this.deviceType !== 'controller') {
+        throw new Error('Only controllers can send commands.');
+    }
+
+    this._send('command', msgString, {sticky: true});
+};
+
 
 /**
  * Send data to the remote proxy.
  * @param  {string} type The message type we are sending.
  * @param  {string} data The data, it must be a string.
  */
-Device.prototype._send = function(type, data) {
+Device.prototype._send = function(type, data, options) {
 
     if (!this.uid && type !== 'register') {
         this.log('Device._send(): Not yet registered.');
@@ -216,6 +245,10 @@ Device.prototype._send = function(type, data) {
         seq: this.mySeqNum,
         data: data
     };
+
+    if ((type === 'status' || type === 'command') && options && options.sticky === true) {
+        msgObj.sticky = true;
+    }
 
     // Send the message to the proxy.  Use the IP have we have determined it.
     this.connection._send(msgObj);

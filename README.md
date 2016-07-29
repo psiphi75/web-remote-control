@@ -161,6 +161,12 @@ var settings = {
 var proxy = wrc.createProxy(settings);
 ```
 
+## Sticky messages
+
+It is possible to create sticky messages of type 'command' and 'status' using `stickyCommand()` and `stickyStatus()`.
+A sticky message will be held by the proxy for a given channel and by provided to all devices registering on that
+channel.  Only one sticky message will be kept at a time, new sticky messages will overwrite the old.
+
 ## Communication Protocol
 
 In case you want to build your own client/server (Device/Proxy) in another language the Protocol for web-remote-control
@@ -170,8 +176,9 @@ has been described [here](https://github.com/psiphi75/web-remote-control/blob/ma
 
 Below are known issues, feel free to fix them.
 - Proxy default of UDP, fallback to TCP.
+- **Done**: Sticky messages added.
 - **Done**: Create observer device that can't remote control the device.
-- **Done** Allow only one controller per channel.
+- **Done**: Allow only one controller per channel.
 - **Done**: Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
 - **Done**: Out of order packets are not handled, we should only use the most recent command packet.
 - **Done**: Add the creation of "web-remote-control.js" to the install (need to run build.sh) and include browserify as a global.

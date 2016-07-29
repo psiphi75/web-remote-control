@@ -68,14 +68,17 @@ function createProxy() {
                             onlyOneToyPerChannel: true,
                             allowObservers: true });
 }
-function createController() {
-    return wrc.createController({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+function createController(channel) {
+    channel = channel || channel1;
+    return wrc.createController({ channel: channel, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
 }
-function createToy() {
-    return wrc.createToy({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+function createToy(channel) {
+    channel = channel || channel1;
+    return wrc.createToy({ channel: channel, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
 }
-function createObserver() {
-    return wrc.createObserver({ channel: channel1, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
+function createObserver(channel) {
+    channel = channel || channel1;
+    return wrc.createObserver({ channel: channel, log: logging, keepalive: 0, udp4: UDP, tcp: TCP });
 }
 
 test('Test Proxy can be created and a toy can be registered', function(t) {
@@ -278,6 +281,45 @@ test('There can be only one device per channel', function(t){
     });
 
 });
+
+testTwoStickies('command');
+testTwoStickies('status');
+
+function testTwoStickies(type) {
+
+    test('Test the sticky status messages for ' + type, function(t) {
+
+        var myStatus = 'What is the meaning of life?';
+        var myChannel = Math.random().toString();
+        t.plan(1);
+
+        var dev;
+        var stickyFn;
+        var createObserverFn;
+        if (type === 'command') {
+            dev = createController(myChannel);
+            stickyFn = dev.stickyCommand.bind(dev);
+            createObserverFn = createToy;
+        } else {
+            dev = createToy(myChannel);
+            stickyFn = dev.stickyStatus.bind(dev);
+            createObserverFn = createObserver;
+        }
+
+        dev.once('register', function() {
+            stickyFn(myStatus);
+
+            var observer2 = createObserverFn(myChannel);
+            observer2.once(type, function(status) {
+                t.equal(myStatus, status, 'Status message received after observer connected.');
+                observer2.close();
+                dev.close();
+                t.end();
+            });
+        });
+
+    });
+}
 
 
 test.onFinish(function () {

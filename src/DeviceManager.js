@@ -205,7 +205,7 @@ DeviceManager.prototype.getAll = function(deviceType, channel) {
 
     if (!this.validDeviceType(deviceType)) {
         console.error('DeviceManager.getAll(): "deviceType" should be "toy" or "controller" or "observer" (if allowObservers is true), not: ', deviceType);
-        return undefined;
+        return [];
     }
 
     var devList = [];

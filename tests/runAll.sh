@@ -23,6 +23,9 @@ PROTOCOL=TCP node testWRC-LocalProxy.js
 #
 # run this script using `PROXY_ADDRESS="your.proxy.com" ./runAll.sh`
 #
+# Proxy should be started using:
+#     var proxy = wrc.createProxy({udp4:true, allowObservers:true});
+#
 if [ "${PROXY_ADDRESS}" != "" ]; then
 
     echo "Web-Remote-Control - REMOTE (${PROXY_ADDRESS}) - UDP"
