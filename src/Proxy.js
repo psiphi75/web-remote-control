@@ -29,6 +29,7 @@ var util = require('util');
 var DeviceManager = require('./DeviceManager');
 var ServerConnection = require('./ServerConnection');
 var errors = require('./errors.js');
+var StickyMessages = require('./StickyMessages');
 
 /**
  * This is the proxy server.  It is the "man in the middle".  Devices (toys,
@@ -58,7 +59,7 @@ function Prox(settings) {
     this.server.on('status', this.forwardStatus.bind(this));
     this.server.on('command', this.forwardCommand.bind(this));
 
-    this.stickers = new Stickers();
+    this.stickers = new StickyMessages();
 
     EventEmitter.call(this);
 
@@ -115,7 +116,10 @@ Prox.prototype.registerDevice = function(msgObj) {
     //
     var stickyMsgObj = this.stickers.get(channel, deviceType, msgObj);
     if (stickyMsgObj === undefined) return;
-    this._send(stickyMsgObj);
+    var self = this;
+    setTimeout(function () {
+        self._send(stickyMsgObj);
+    }, 20);
 };
 
 
@@ -246,37 +250,3 @@ Prox.prototype.handleError = function(err) {
 };
 
 module.exports = Prox;
-
-
-function Stickers() {
-    this.status = {};
-    this.command = {};
-}
-
-Stickers.prototype.set = function(channel, type, msgObj) {
-    if (type !== 'command' && type !== 'status') return;
-    if (msgObj.sticky !== true) return;
-    this[type][channel] = {
-        type: type,
-        seq: msgObj.seq,
-        data: msgObj.data
-    };
-};
-
-Stickers.prototype.get = function(channel, deviceType, msgObj) {
-    var type;
-    if (deviceType === 'controller' || deviceType === 'observer') {
-        type = 'status';
-    } else {
-        type = 'command';
-    }
-    var stickyObj = this[type][channel];
-    if (stickyObj === undefined) return undefined;
-    return {
-        type: type,
-        seq: stickyObj.seq,
-        data: stickyObj.data,
-        uid: msgObj.uid,
-        socket: msgObj.socket
-    };
-};

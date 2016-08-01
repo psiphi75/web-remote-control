@@ -1,13 +1,15 @@
 # Web Remote Control
 
-This module allows you to control an IoT (Internet of Things) device from the web (e.g. your mobile phone).  This is a complete remote control solution that includes the following components:
+This module allows you to control an IoT (Internet of Things) device from the web (e.g. your mobile phone). This is a complete remote control solution that includes the following components:
+
 - A Proxy - runs on a server and needs to be accessible to the Controller and Toy.
 - The Controller - this can be via web or node.js.
 - The Toy - the device being controlled (this should run node.js).
 
-This solution is ideal for controlling devices over a cellular network (i.e where you cannot directly access by an IP).  It uses the UDP protocol instead of TCP by default to make the communication more efficient.  Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
+This solution is ideal for controlling devices over a cellular network (i.e where you cannot directly access by an IP). It uses the UDP protocol instead of TCP by default to make the communication more efficient. Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
 
 Connection methods are:
+
 - TCP - between node.js client/controller and proxy.
 - UDP - between node.js client/controller and proxy. This protocol is optimised with a compression protocol using [smaz](https://www.npmjs.com/package/smaz).
 - Socket.io - between Browser client and proxy.
@@ -19,22 +21,23 @@ $ npm install web-remote-control
 ```
 
 ## Basic Usage
+
 **The Proxy:**
 
 The proxy is required to relay `command`s from the controller to device. It also accepts `ping`s and relays `status` messages from the device/controller to the controller/device.
 
 The default port for TCP and UDP is 33330 and for socket.io it's 33331.
 
-```JavaScript
+```javascript
 var wrc = require('web-remote-control');
 var proxy = wrc.createProxy();
 ```
 
 **The Device (node.js):**
 
-The device is what is being controlled.  It accepts `command`s, `message`s, and `ping` responses.  It can send `ping`s and `message`s.
+The device is what is being controlled. It accepts `command`s, `message`s, and `ping` responses. It can send `ping`s and `message`s.
 
-```JavaScript
+```javascript
 var wrc = require('web-remote-control');
 var toy = wrc.createToy({ proxyUrl: 'your proxy url'});
 
@@ -56,7 +59,6 @@ toy.on('command', function(cmd) {
     console.log('The controller sent me this command: ', cmd);
 });
 ```
-
 
 **The Controller (from browser):**
 
@@ -84,9 +86,9 @@ toy.on('command', function(cmd) {
 
 **The Controller (from node.js):**
 
-The controller is what controls the device via a `command`.  It accepts `status`s and `ping` responses.  It can send `command`s and `status` updates.
+The controller is what controls the device via a `command`. It accepts `status`s and `ping` responses. It can send `command`s and `status` updates.
 
-```JavaScript
+```javascript
 var wrc = require('web-remote-control');
 var controller = wrc.createController({ proxyUrl: 'your proxy url' });
 
@@ -104,9 +106,9 @@ controller.on('status', function (status) {
 
 # More Advanced Usage
 
-The default values are shown below.  This can be found in `index.js`.
+The default values are shown below. This can be found in `index.js`.
 
-```JavaScript
+```javascript
 var defaults = {
 
     // This is the URL were the proxy is located.  Only Toys and Controllers can
@@ -163,27 +165,27 @@ var proxy = wrc.createProxy(settings);
 
 ## Sticky messages
 
-It is possible to create sticky messages of type 'command' and 'status' using `stickyCommand()` and `stickyStatus()`.
-A sticky message will be held by the proxy for a given channel and by provided to all devices registering on that
-channel.  Only one sticky message will be kept at a time, new sticky messages will overwrite the old.
+It is possible to create sticky messages of type 'command' and 'status' using `stickyCommand()` and `stickyStatus()`. A sticky message will be held by the proxy for a given channel and by provided to all devices registering on that channel. Only one sticky message will be kept at a time, new sticky messages will overwrite the old.
 
 ## Communication Protocol
 
-In case you want to build your own client/server (Device/Proxy) in another language the Protocol for web-remote-control
-has been described [here](https://github.com/psiphi75/web-remote-control/blob/master/Protocol.md).
+In case you want to build your own client/server (Device/Proxy) in another language the Protocol for web-remote-control has been described [here](https://github.com/psiphi75/web-remote-control/blob/master/Protocol.md).
 
 ## Known Issues and To-Do items
 
 Below are known issues, feel free to fix them.
+
 - Proxy default of UDP, fallback to TCP.
+- Refactor Socket connections - seperate the socket open, write and close from ServerConnection.js.
+- TCP sockets may be crash the system when two TCP write events occur at the same time.  Need to wait for TCP drain event.
 - **Done**: Sticky messages added.
 - **Done**: Create observer device that can't remote control the device.
 - **Done**: Allow only one controller per channel.
-- **Done**: Integrate the static fileserver (WebServer.js) with the proxy.  This simplifies the creation of the whole web-remote-control functionality.
+- **Done**: Integrate the static fileserver (WebServer.js) with the proxy. This simplifies the creation of the whole web-remote-control functionality.
 - **Done**: Out of order packets are not handled, we should only use the most recent command packet.
 - **Done**: Add the creation of "web-remote-control.js" to the install (need to run build.sh) and include browserify as a global.
 - **Done**: The web component needs creating and documented.
-- **Done** (for UDP): Compression currently does not work.  Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger.  [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.
+- **Done** (for UDP): Compression currently does not work. Because the packet length is so short (can be less than 50 bytes) standard compression algorithms don't work, in-fact the make the data payload bigger. [smaz](https://www.npmjs.com/package/smaz) is a neat library that accommodates this and can compress short strings.
 - **Fixed**: TCP functionality missing.
 - **Fixed**: If we are not registered, try again in 30 seconds.
 - **Fixed**: Each ping creates a new listener.
@@ -192,8 +194,8 @@ Below are known issues, feel free to fix them.
 
 Copyright 2016 Simon M. Werner
 
-Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
-  [http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+<http://www.apache.org/licenses/LICENSE-2.0>
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
