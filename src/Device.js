@@ -136,9 +136,8 @@ Device.prototype.register = function () {
     // Check the registery again in RECHECK_REGISTER seconds if we do not get a response
     var self = this;
     this.recheckRegisteryTimeout = setTimeout(function checkRegistery() {
-        self.log(self.deviceType + ': unable to register with proxy, trying again.');
+        self.log(self.deviceType + ': unable to register with proxy (timeout), trying again. (' + self.proxyUrl + ' on "' + self.channel + '")');
         self.register();
-
     }, NET_TIMEOUT);
 
 };
