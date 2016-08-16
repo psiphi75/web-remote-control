@@ -25,9 +25,10 @@
  * PingManager ensures all pings are matched to a response.  Lost pings are
  * forgotten over time.
  */
-function PingManager() {
+function PingManager(settings) {
     this.pingList = {};
     this.MAX_PING_WAIT_TIME = 60 * 1000;
+    this.log = settings.log;
 }
 
 /**
@@ -38,10 +39,10 @@ function PingManager() {
 PingManager.prototype.add = function(pingId, callback) {
 
     if (typeof pingId !== 'number') {
-        throw new Error('PingManager.add(): pingId must be a number.');
+        this.log.error('PingManager.add(): pingId must be a number.');
     }
     if (this.pingList[pingId]) {
-        throw new Error('PingManager.add(): pingId has already been supplied.');
+        this.log.error('PingManager.add(): pingId has already been supplied.');
     }
 
     // Create the ping, and make it self destruct.
@@ -67,7 +68,7 @@ PingManager.prototype.add = function(pingId, callback) {
 PingManager.prototype.handleIncomingPing = function(pingId, time) {
     var ping = this.pingList[pingId];
     if (!ping) {
-        throw new Error('PingManager.respond(): pingId not found.');
+        this.log.error('PingManager.respond(): pingId not found.');
     }
 
     clearTimeout(ping.timeoutHandle);
@@ -79,7 +80,7 @@ PingManager.prototype.handleIncomingPing = function(pingId, time) {
     try {
         delete this.pingList[pingId];
     } catch (ex) {
-        this.log('Did not expect this.');
+        this.log.error('Did not expect this.');
     }
 
 };

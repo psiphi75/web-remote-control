@@ -21,67 +21,69 @@
  *                                                                   *
  *********************************************************************/
 
+var test = require('tape');
 
- var test = require('tape');
+var PingManager = require('../src/PingManager');
+var settings = {
+    log: function () {}
+};
 
- var PingManager = require('../src/PingManager');
+test('Can create a few pings', function (t) {
 
- test('Can create a few pings', function(t) {
+    t.plan(3);
 
-     t.plan(3);
+    var pm = new PingManager(settings);
+    var fn1 = function () {};
+    var fn2 = function () {};
+    var fn3 = function () {};
+    pm.add(1, fn1);
+    pm.add(2, fn2);
+    pm.add(3, fn3);
 
-     var pm = new PingManager();
-     var fn1 = function () {};
-     var fn2 = function () {};
-     var fn3 = function () {};
-     pm.add(1, fn1);
-     pm.add(2, fn2);
-     pm.add(3, fn3);
+    var testPass = false;
+    try {
+        pm.add(1, fn1);
+    } catch (ex) {
+        testPass = true;
+    }
+    t.true(testPass, 'adding duplicates throws an error');
 
-     var testPass = false;
-     try {
-         pm.add(1, fn1);
-     } catch (ex) {
-         testPass = true;
-     }
-     t.true(testPass, 'adding duplicates throws an error');
+    t.deepEqual(pm.pingList[1].callback, fn1);
+    t.deepEqual(pm.pingList[3].callback, fn3);
 
-     t.deepEqual(pm.pingList[1].callback, fn1);
-     t.deepEqual(pm.pingList[3].callback, fn3);
+    clearTimeout(pm.pingList[1].timeoutHandle);
+    clearTimeout(pm.pingList[2].timeoutHandle);
+    clearTimeout(pm.pingList[3].timeoutHandle);
 
-     clearTimeout(pm.pingList[1].timeoutHandle);
-     clearTimeout(pm.pingList[2].timeoutHandle);
-     clearTimeout(pm.pingList[3].timeoutHandle);
+    t.end();
 
-     t.end();
+});
 
- });
+test('Pings timeout (self-destruct)', function (t) {
 
- test('Pings timeout (self-destruct)', function(t) {
+    t.plan(3);
 
-     t.plan(3);
+    var pm = new PingManager(settings);
+    pm.MAX_PING_WAIT_TIME = 100;
 
-     var pm = new PingManager();
-     pm.MAX_PING_WAIT_TIME = 100;
+    var pingResponseTime = 0;
+    var fn1 = function (time) {
+        pingResponseTime = time;
+        t.equal(time, -1, 'pingResponse should return -1 (unsuccessful ping)');
+        t.end();
+    };
+    pm.add(1, fn1);
 
-     var pingResponseTime = 0;
-     var fn1 = function (time) {
-         pingResponseTime = time;
-         t.equal(time, -1, 'pingResponse should return -1 (unsuccessful ping)');
-         t.end();
-     };
-     pm.add(1, fn1);
+    t.equal(pingResponseTime, 0, 'pingResponse should not have changed yet');
+    t.deepEqual(pm.pingList[1].callback, fn1);
 
-     t.equal(pingResponseTime, 0, 'pingResponse should not have changed yet');
-     t.deepEqual(pm.pingList[1].callback, fn1);
+});
 
- });
-
-test('Pings can be resolved', function(t) {
+test('Pings can be resolved', function (t) {
 
     t.plan(2);
 
-    var pm = new PingManager();
+    var pm = new PingManager(settings);
 
     var fn1 = function (time) {
         t.equal(time, 123, 'pingResponse should be positive');

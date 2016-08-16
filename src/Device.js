@@ -54,7 +54,7 @@ function Device(settings, ClientConnection) {
     this.deviceType = settings.deviceType || 'controller';
     this.log = settings.log || function() {};
 
-    this.pingManager = new PingManager();
+    this.pingManager = new PingManager(settings);
     this.connection = new ClientConnection(settings);
     this.uid = undefined;
 
