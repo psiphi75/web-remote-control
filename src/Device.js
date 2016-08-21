@@ -91,7 +91,7 @@ function Device(settings, ClientConnection) {
             self.uid = responseMsgObj.uid;
         }
 
-        clearTimeout(self.recheckRegisteryTimeout);
+        self.clearRegisterTimeout();
         reEmit(responseMsgObj);
     }
 
@@ -126,8 +126,10 @@ util.inherits(Device, EventEmitter);
  */
 Device.prototype.register = function () {
 
-    this.clearRegisterTimeout();
-
+    // Don't try to re-register if we are already trying
+    if (this.recheckRegisteryTimeout) {
+        return;
+    }
     this._send('register', {
         deviceType: this.deviceType,
         channel: this.channel
@@ -137,6 +139,7 @@ Device.prototype.register = function () {
     var self = this;
     this.recheckRegisteryTimeout = setTimeout(function checkRegistery() {
         self.log(self.deviceType + ': unable to register with proxy (timeout), trying again. (' + self.proxyUrl + ' on "' + self.channel + '")');
+        self.clearRegisterTimeout();
         self.register();
     }, NET_TIMEOUT);
 
@@ -147,6 +150,7 @@ Device.prototype.clearRegisterTimeout = function () {
         return;
     }
     clearTimeout(this.recheckRegisteryTimeout);
+    this.recheckRegisteryTimeout = undefined;
 };
 
 

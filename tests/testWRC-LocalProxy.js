@@ -182,6 +182,7 @@ test('toy-x registers, proxy crashes, then toy-1 pings and gets error and re-reg
 
 });
 
+
 test('The sequence numbers are handled and passed from device to toy', function(t) {
 
     // Seq Plan, item '1003' should be dropped by proxy and not heard by controller.
@@ -320,6 +321,29 @@ function testTwoStickies(type) {
 
     });
 }
+
+
+test('toy registers but proxy not there, then toy re-registers automatically', function(t) {
+
+    t.plan(1);
+
+    proxy.close();
+
+    console.log('HANG ON, this test takes a few seconds.');
+    var myToy = createToy('RandomChannel' + Math.random().toString());
+
+    myToy.once('register', function() {
+        t.pass('We could register with a proxy that came up late.');
+        t.end();
+        myToy.close();
+    });
+
+    // Start the proxy after the first retry
+    setTimeout(function(){
+        proxy = createProxy();
+    }, 6000);
+
+});
 
 
 test.onFinish(function () {
