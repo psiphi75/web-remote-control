@@ -332,14 +332,23 @@ test('toy registers but proxy not there, then toy re-registers automatically', f
     console.log('HANG ON, this test takes a few seconds.');
     var myToy = createToy('RandomChannel' + Math.random().toString());
 
-    myToy.once('register', function() {
+    myToy.on('register', function () {
         t.pass('We could register with a proxy that came up late.');
         t.end();
+        myToy.removeAllListeners();
         myToy.close();
     });
 
+    myToy.on('error', function() {
+        t.pass('We handled the error.');
+        t.end();
+        myToy.removeAllListeners();
+        myToy.close();
+        clearTimeout(h);
+    });
+
     // Start the proxy after the first retry
-    setTimeout(function(){
+    var h = setTimeout(function(){
         proxy = createProxy();
     }, 6000);
 
