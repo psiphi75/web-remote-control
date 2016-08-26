@@ -30,7 +30,7 @@ var settings = {
 
 test('Can create a few pings', function (t) {
 
-    t.plan(3);
+    t.plan(2);
 
     var pm = new PingManager(settings);
     var fn1 = function () {};
@@ -39,14 +39,6 @@ test('Can create a few pings', function (t) {
     pm.add(1, fn1);
     pm.add(2, fn2);
     pm.add(3, fn3);
-
-    var testPass = false;
-    try {
-        pm.add(1, fn1);
-    } catch (ex) {
-        testPass = true;
-    }
-    t.true(testPass, 'adding duplicates throws an error');
 
     t.deepEqual(pm.pingList[1].callback, fn1);
     t.deepEqual(pm.pingList[3].callback, fn3);
