@@ -9,6 +9,8 @@ cd ../
 SRC_DIR="./src"
 WWW_DIR="./www"
 
+mkdir -p $WWW_DIR
+
 BRSFY=`which browserify`
 
 if [ "${BRSFY}" = "" ]; then

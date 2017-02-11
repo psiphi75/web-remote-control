@@ -6,7 +6,7 @@ This module allows you to control an IoT (Internet of Things) device from the we
 - The Controller - this can be via web or node.js.
 - The Toy - the device being controlled (this should run node.js).
 
-This solution is ideal for controlling devices over a cellular network (i.e where you cannot directly access by an IP). It uses the UDP protocol instead of TCP by default to make the communication more efficient. Note: UPD protocol is only available for node.js, currently no browsers support UDP for standard webpages.
+This solution is ideal for controlling devices over a cellular network (i.e where you cannot directly access by an IP). It uses the UDP protocol instead of TCP by default to make the communication more efficient. Note: UDP protocol is only available for node.js, currently no browsers support UDP for standard webpages.
 
 Connection methods are:
 
