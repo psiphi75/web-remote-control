@@ -14,11 +14,23 @@ Connection methods are:
 - UDP - between node.js client/controller and proxy. This protocol is optimised with a compression protocol using [smaz](https://www.npmjs.com/package/smaz).
 - Socket.io - between Browser client and proxy.
 
-## Install
+## Installing from npmjs.org
 
 ```bash
-$ npm install web-remote-control
+npm install web-remote-control
 ```
+
+## Installing from github
+
+```bash
+git clone https://github.com/psiphi75/web-remote-control
+
+# Run the following commands if you want the web-remote-control.js for use in the browser.
+sudo npm install -g browserify
+cd scripts
+build.sh
+```
+
 
 ## Basic Usage
 
